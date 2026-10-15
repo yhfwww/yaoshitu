@@ -35,9 +35,19 @@ src/src/
 cmd /c "npm run typecheck"   # tsc -b --noEmit
 cmd /c "npm run dev"         # http://localhost:5173
 cmd /c "npm run build"       # 产物在 src/dist
+cmd /c "npm run preview"     # 预览生产构建，http://localhost:4173
+cmd /c "npm run icons"       # 从 public/app-icon.svg 重新生成整套 PWA 图标
 ```
 
 Node ≥ 20.19（或 ≥ 22.12，Vite 8 的要求）；本机与 CI 都用 Node 24。
+
+## 图标与 PWA
+
+- **PNG 图标是生成的，不要手改**。源图是 `public/app-icon.svg`（品牌方案 A，几何照搬 `src/components/Logo.tsx`），改完跑 `cmd /c "npm run icons"` 产出整套：64 / 192 / 512 / 512-maskable / apple-touch-icon-180 / favicon.ico。
+- **favicon 用方案 B**（`public/favicon.svg`，手写 SVG），**app 图标用方案 A** —— 这是 `docs/brand-system.md` 的规定（方案 A 有 5 个点，16×16 下会糊），别"顺手统一"成一套。
+- **源图必须留在 `public/` 下**：生成器的输出目录跟随源图所在目录，没有单独的输出目录参数。
+- **maskable 安全区靠源图构图解决，不要用生成器的 `padding`** —— 它对 maskable / apple 的默认 `padding` 是 `0.3`，补边颜色默认 `white`，会在品牌米色底（`#F1EFE8`）外圈加一道白边。
+- manifest 由 `vite-plugin-pwa` 在**构建时生成**，**不要再手写** `public/manifest.webmanifest`。增删图标要同步改 `vite.config.ts` 里的 `manifest.icons`。
 
 ## 硬约束（不是风格偏好，是产品定义）
 
@@ -55,6 +65,9 @@ Node ≥ 20.19（或 ≥ 22.12，Vite 8 的要求）；本机与 CI 都用 Node 
 - **视图里引组件要用 `../components/x`**（视图在 `views/` 子目录），曾有过写成 `./` 的事故。CI 跑在 Linux 上，**大小写与相对路径错误不会被 Windows 顺手放过**。
 - **Windows 下 `vite build` 的 `emptyOutDir` 走 safe-delete shim 可能失败** —— 先 `rm -rf dist` 再 build。
 - **仓库路径含中文**（`C:\PROJECT_DEV\要事\TODO_APP`），shell 输出里中文可能显示成 `??`，不影响 git 与文件本身，别被吓到。
+- **SVG 注释里不能出现连续两个短横线** —— sharp 走的是严格 XML 解析，注释里写 CSS 变量名（如 `--c-primary`）会直接报 `Comment must not contain '--'`。
+- **Workbox 的 `globPatterns` 默认只管 js/css/html** —— 图片与 manifest 必须显式加进去，否则离线时图标缺失。无路由 SPA 还必须设 `navigateFallback: "index.html"`，否则离线刷新匹配不到 precache 里的 `index.html`。
+- **PowerShell 里并行执行要小心**：写文件的工具与 `Remove-Item -Recurse` 同时跑，会把自己刚写的文件删掉。串行来。
 
 ## 不要提交
 
