@@ -4,10 +4,11 @@
 
 本地优先的**坐标系任务管理器**：给每个任务一对连续坐标（紧急 1–100 × 重要 1–100），优先级不是选出来的，是在平面上摆出来的。
 
+[![CI](https://github.com/yhfwww/yaoshitu/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/yhfwww/yaoshitu/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-534AB7.svg)](#许可证)
 ![Status: draft](https://img.shields.io/badge/status-v0.1.0--draft-orange.svg)
 
-> ⚠️ **当前为草稿阶段。** 一期 MVP 功能已可运行，但对外发布前的工程化收尾尚未完成（PWA 离线缓存、自动化测试、CI 等）。数据模型与交互仍可能调整，详见 [项目状态与路线图](#项目状态与路线图)。
+> ⚠️ **当前为草稿阶段。** 一期 MVP 功能已可运行，但对外发布前的工程化收尾尚未完成（PWA 离线缓存、自动化测试等）。数据模型与交互仍可能调整，详见 [项目状态与路线图](#项目状态与路线图)。
 
 ---
 
@@ -114,6 +115,7 @@ npm run preview    # 预览生产构建
 | 状态 | Zustand | 5 |
 | 存储 | Dexie（IndexedDB，schema versioning） | 4 |
 | 坐标系渲染 | 原生 SVG（500 点规模足够，Canvas 留作上万点优化项） | — |
+| 工程 | CI 门禁（GitHub Actions：`npm ci` → `typecheck` → `build`） | — |
 | 后端 | 无（一期零外部请求） | — |
 
 ## 目录结构
@@ -161,7 +163,7 @@ yaoshitu/
 **已知缺口（诚实清单）**：
 
 - PWA 只有 manifest + SVG 图标，**没有 service worker 离线缓存，也没有 PNG 图标集**
-- **没有任何自动化测试，也没有 CI**
+- **没有任何自动化测试** —— 有 CI 门禁（`npm ci` → `typecheck` → `build`），但它只保证类型正确与可构建，**不验证功能是否正确**
 - 无深色模式
 - 移动端触摸手势未适配（缺长按菜单 / 底部 sheet 来替代 hover 与拖拽）
 - 无障碍目前是"写的时候注意"，未做系统性验证（键盘完成全流程、读屏实测）
