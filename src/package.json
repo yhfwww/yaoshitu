@@ -1,0 +1,26 @@
+{
+  "name": "yaoshitu",
+  "private": true,
+  "version": "0.1.0",
+  "description": "要事图 / Yaoshitu — 本地优先的坐标系任务管理器",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc -b && vite build",
+    "preview": "vite preview",
+    "typecheck": "tsc -b --noEmit"
+  },
+  "dependencies": {
+    "dexie": "^4.4.5",
+    "react": "^19.2.8",
+    "react-dom": "^19.2.8",
+    "zustand": "^5.0.15"
+  },
+  "devDependencies": {
+    "@types/react": "^19.2.18",
+    "@types/react-dom": "^19.2.4",
+    "@vitejs/plugin-react": "^6.0.5",
+    "typescript": "~5.9.3",
+    "vite": "^8.2.1"
+  }
+}

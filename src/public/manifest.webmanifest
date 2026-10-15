@@ -1,0 +1,15 @@
+{
+  "name": "要事图",
+  "short_name": "要事图",
+  "description": "本地优先的坐标系任务管理器。连续坐标、隐私优先、开源。",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#F1EFE8",
+  "theme_color": "#F1EFE8",
+  "lang": "zh-CN",
+  "orientation": "any",
+  "icons": [
+    { "src": "favicon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any" }
+  ]
+}

@@ -1,0 +1,164 @@
+/* 要事图 / Yaoshitu —— 全局样式（极简、文字优先、少动效） */
+:root {
+  --c-primary: #534ab7;
+  --c-primary-dark: #3c3489;
+  --c-primary-soft: #eeedfe;
+  --c-axis: #888780;
+  --c-card: #f1efe8;
+  --c-text: #2c2c2a;
+  --c-text-muted: #5f5e5a;
+  --c-border: #b4b2a9;
+  --c-hover: #e9e6dc;
+  --c-bg: #faf9f5;
+  --c-white: #ffffff;
+
+  --font-sans: "Source Han Sans SC", "Noto Sans SC", "PingFang SC",
+    "Microsoft YaHei", "Inter", system-ui, -apple-system, sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, "SFMono-Regular", Consolas,
+    monospace;
+
+  --radius: 8px;
+  --sidebar-w: 220px;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body,
+#root {
+  height: 100%;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  font-family: var(--font-sans);
+  color: var(--c-text);
+  background: var(--c-bg);
+  font-size: 14px;
+  line-height: 1.6;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+button {
+  font-family: inherit;
+  font-size: inherit;
+  cursor: pointer;
+  border: none;
+  background: none;
+  color: inherit;
+}
+
+input,
+textarea,
+select {
+  font-family: inherit;
+  font-size: inherit;
+  color: inherit;
+}
+
+a {
+  color: var(--c-primary-dark);
+  text-decoration: none;
+}
+
+/* 焦点可见性（a11y） */
+:focus-visible {
+  outline: 2px solid var(--c-primary);
+  outline-offset: 2px;
+}
+
+/* 通用按钮 */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  border-radius: 6px;
+  border: 1px solid var(--c-border);
+  background: var(--c-white);
+  color: var(--c-text);
+  font-size: 13px;
+  line-height: 1.4;
+  transition: background 0.12s ease;
+}
+.btn:hover {
+  background: var(--c-hover);
+}
+.btn-primary {
+  background: var(--c-primary);
+  border-color: var(--c-primary);
+  color: #fff;
+}
+.btn-primary:hover {
+  background: var(--c-primary-dark);
+}
+.btn-ghost {
+  border-color: transparent;
+  background: transparent;
+}
+.btn-ghost:hover {
+  background: var(--c-hover);
+}
+.btn-danger {
+  color: var(--c-text-muted);
+}
+.btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* 通用输入 */
+.input,
+.textarea {
+  width: 100%;
+  padding: 7px 10px;
+  border: 1px solid var(--c-border);
+  border-radius: 6px;
+  background: var(--c-white);
+  color: var(--c-text);
+}
+.input:focus,
+.textarea:focus {
+  outline: none;
+  border-color: var(--c-primary);
+}
+.textarea {
+  resize: vertical;
+  min-height: 72px;
+}
+
+/* 可访问的屏幕阅读器专用文本 */
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+/* 滚动条（低调） */
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+::-webkit-scrollbar-thumb {
+  background: var(--c-border);
+  border-radius: 5px;
+  border: 2px solid transparent;
+  background-clip: content-box;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: var(--c-axis);
+  background-clip: content-box;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}

@@ -1,0 +1,26 @@
+# 依赖与构建产物
+node_modules/
+dist/
+dist-ssr/
+*.local
+
+# 第三方参考实现：Focus(Flutter) / GSD Task Manager(Next.js)
+# 均为他人代码，且各自带有 .git，不入本仓库
+REF/
+
+# 生成中的 LOGO 素材：带"AI 生成"水印、尚未剪裁
+# 定稿正式物料后再从这里挑文件纳入版本管理
+generated-images/
+
+# 编辑器 / 系统文件
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/*
+!.vscode/extensions.json
+*.swp
+
+# 日志
+npm-debug.log*
+yarn-error.log*
+pnpm-debug.log*
