@@ -1,0 +1,32 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <!--
+    要事图 / Yaoshitu —— 应用图标源图（方案 A · 十字焦点）
+
+    几何照搬 src/components/Logo.tsx 的 24 单位设计，缩放 18.3467 倍并居中映射到 512 画布：
+    24 单位设计盒映射为画布的 86%，设计中心 (12,12) 映射到 (256,256)。
+    颜色取 src/index.css 的 CSS 变量：卡片底 #f1efe8、坐标轴 #888780、主色 #534ab7。
+
+    为什么是 86% 而不是更满：PWA maskable 图标的「安全区」是画布中央直径 80% 的圆。
+    此构图下最外侧元素（实心紫点）外缘距中心 178.4px，安全半径 204.8px，余量 12.9%，
+    因此同一张源图可直接同时用于 any / maskable / apple 三类图标，无需各自加 padding。
+    背景满幅铺底（无圆角），圆角交由各平台遮罩自行处理，避免二次圆角。
+
+    注意：XML 注释内不能出现连续两个短横线，所以这里不用 CSS 变量原名书写。
+
+    重新生成：cd src && npm run icons
+  -->
+  <rect width="512" height="512" fill="#F1EFE8"/>
+
+  <!-- 坐标十字 -->
+  <line x1="256" y1="90.88" x2="256" y2="421.12" stroke="#888780" stroke-width="22.016"/>
+  <line x1="90.88" y1="256" x2="421.12" y2="256" stroke="#888780" stroke-width="22.016"/>
+
+  <!-- 空心灰点（4 颗） -->
+  <circle cx="164.267" cy="173.44" r="36.693" stroke="#888780" stroke-width="22.016" fill="none"/>
+  <circle cx="164.267" cy="338.56" r="36.693" stroke="#888780" stroke-width="22.016" fill="none"/>
+  <circle cx="347.733" cy="338.56" r="36.693" stroke="#888780" stroke-width="22.016" fill="none"/>
+  <circle cx="228.48" cy="292.693" r="29.355" stroke="#888780" stroke-width="18.347" fill="none"/>
+
+  <!-- 实心「要事」点 -->
+  <circle cx="347.733" cy="173.44" r="55.04" fill="#534AB7"/>
+</svg>

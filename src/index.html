@@ -2,12 +2,25 @@
 <html lang="zh-CN">
   <head>
     <meta charset="UTF-8" />
-    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
     <meta name="description" content="本地优先的坐标系任务管理器。连续坐标、隐私优先、开源。" />
     <meta name="theme-color" content="#F1EFE8" />
     <title>要事图 · Yaoshitu — 要事一图，轻重自现。</title>
-    <link rel="manifest" href="/manifest.webmanifest" />
+
+    <!--
+      图标：SVG 用方案 B（public/favicon.svg），位图集由 public/app-icon.svg（方案 A）经
+      `npm run icons` 生成 —— 方案 A 有 5 个点，16×16 下会糊，故 favicon 不用它。
+    -->
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+    <link rel="icon" href="/favicon.ico" sizes="48x48" />
+    <link rel="apple-touch-icon" href="/apple-touch-icon-180x180.png" />
+
+    <!-- iOS 添加到主屏后以独立窗口运行 -->
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+    <meta name="apple-mobile-web-app-title" content="要事图" />
+
+    <!-- manifest 由 vite-plugin-pwa 构建时生成并自动注入 link 标签 -->
   </head>
   <body>
     <div id="root"></div>

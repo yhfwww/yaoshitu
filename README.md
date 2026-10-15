@@ -8,7 +8,7 @@
 [![License: MIT](https://img.shields.io/badge/License-MIT-534AB7.svg)](#许可证)
 ![Status: draft](https://img.shields.io/badge/status-v0.1.0--draft-orange.svg)
 
-> ⚠️ **当前为草稿阶段。** 一期 MVP 功能已可运行，但对外发布前的工程化收尾尚未完成（PWA 离线缓存、自动化测试等）。数据模型与交互仍可能调整，详见 [项目状态与路线图](#项目状态与路线图)。
+> ⚠️ **当前为草稿阶段。** 一期 MVP 功能已可运行，但对外发布前的工程化收尾尚未完成（**自动化测试**等）。数据模型与交互仍可能调整，详见 [项目状态与路线图](#项目状态与路线图)。
 
 ---
 
@@ -80,7 +80,7 @@
 - **JSON 导入导出** —— 版本化备份信封（`app: "yaoshitu"`, `formatVersion: 1`），设置页显示"上次备份 N 天前"
 - **默认视图可配** —— 默认坐标系，可在设置里更改
 - **无障碍** —— 语义化标签、`role`、`aria-*`、可见焦点环；坐标系不依赖色相表意（象限用位置 + 颜色双重编码），列表视图为无障碍兜底通道
-- **移动端可安装** —— 提供 Web App Manifest（service worker 离线缓存尚未接入，见下）
+- **可安装 · 可离线** —— Web App Manifest + Workbox 预缓存（service worker）。SW 接管后断网也能打开应用；图标含 192 / 512 / 512-maskable 与 `apple-touch-icon`，不再是桌面上的白块
 
 ---
 
@@ -100,6 +100,7 @@ npm run dev        # http://localhost:5173
 npm run build      # 类型检查 + 生产构建，产物在 src/dist
 npm run typecheck  # 仅类型检查
 npm run preview    # 预览生产构建
+npm run icons      # 从 public/app-icon.svg 重新生成整套 PWA 图标
 ```
 
 首次启动会自动注入一份示例数据（10 个任务 + 2 条原则笔记），方便直接看到坐标系的效果；设置页可导入/导出 JSON 覆盖。
@@ -115,6 +116,7 @@ npm run preview    # 预览生产构建
 | 状态 | Zustand | 5 |
 | 存储 | Dexie（IndexedDB，schema versioning） | 4 |
 | 坐标系渲染 | 原生 SVG（500 点规模足够，Canvas 留作上万点优化项） | — |
+| PWA | vite-plugin-pwa + Workbox 预缓存 | 2.0 / 7.4 |
 | 工程 | CI 门禁（GitHub Actions：`npm ci` → `typecheck` → `build`） | — |
 | 后端 | 无（一期零外部请求） | — |
 
@@ -130,7 +132,7 @@ yaoshitu/
 │   │   ├── lib/                 坐标几何与碰撞 · 日期 · 备份 · 视图注册表
 │   │   ├── components/          侧边栏 · 命令面板 · 任务编辑器 · 设置
 │   │   └── views/               7 个视图
-│   └── public/                  manifest · favicon
+│   └── public/                  图标源图（方案 A）· 生成的 PNG 图标集 · favicon 方案 B
 ├── LICENSE                      MIT
 └── .gitignore                   排除 REF/（第三方参考实现）与未剪裁素材
 ```
@@ -141,6 +143,7 @@ yaoshitu/
 
 - **唯一真相源**是 IndexedDB（库名 `yaoshitu`），通过 Dexie 的 versioning 做 schema 升级，迁移不丢数据。
 - 一期**不发任何网络请求**：没有账号、没有同步、没有分析埋点。
+- service worker 只预缓存应用自身的静态资源（同源），**不向任何域外地址发请求** —— 离线能力不引入第三方运行时依赖，Workbox 已随构建产物打进本地文件。
 - 数据模型一次性全量建模（子任务、递归、时间追踪、依赖、提醒等字段都在 schema 里），UI 分批上线 —— 具体"已建模未出 UI"的清单直接写在应用的设置页里，不夸大实装范围。
 - 导入导出是你自己的事：导出即得到一个人类可读的 JSON 文件，随时可带走。
 
@@ -162,7 +165,6 @@ yaoshitu/
 
 **已知缺口（诚实清单）**：
 
-- PWA 只有 manifest + SVG 图标，**没有 service worker 离线缓存，也没有 PNG 图标集**
 - **没有任何自动化测试** —— 有 CI 门禁（`npm ci` → `typecheck` → `build`），但它只保证类型正确与可构建，**不验证功能是否正确**
 - 无深色模式
 - 移动端触摸手势未适配（缺长按菜单 / 底部 sheet 来替代 hover 与拖拽）
