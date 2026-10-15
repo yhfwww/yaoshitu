@@ -1,0 +1,52 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+# CI 只需要读代码，不给任何写权限
+permissions:
+  contents: read
+
+# 同一分支连续推送时取消上一次未完成的运行：省额度，也避免结果错序
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  verify:
+    name: typecheck + build
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    defaults:
+      run:
+        working-directory: src
+    steps:
+      - name: 检出源码
+        uses: actions/checkout@v7
+        with:
+          fetch-depth: 1
+
+      - name: 安装 Node
+        uses: actions/setup-node@v7
+        with:
+          # 与本地开发环境保持同一大版本（v24），减少"本地能过、CI 不能过"的版本噪音
+          node-version: 24
+          cache: npm
+          cache-dependency-path: src/package-lock.json
+
+      # npm ci 严格按 package-lock.json 从零安装。
+      # 锁文件与 package.json 不同步会直接失败，而不是像 npm install 那样默默修好；
+      # 同时能抓出"依赖被手动装进 node_modules 但没写进 package.json"这类本机抓不到的错。
+      - name: 安装依赖
+        run: npm ci
+
+      # 单独跑一次类型检查而不是只依赖 build 里的 tsc -b：
+      # 失败时能一眼看出是类型问题还是打包问题
+      - name: 类型检查
+        run: npm run typecheck
+
+      - name: 构建
+        run: npm run build
