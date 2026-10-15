@@ -12,6 +12,9 @@ REF/
 # 定稿正式物料后再从这里挑文件纳入版本管理
 generated-images/
 
+# 本地开发待办台账：只在本机存在，不随仓库分发
+TODO.md
+
 # 编辑器 / 系统文件
 .DS_Store
 Thumbs.db
