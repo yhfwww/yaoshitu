@@ -17,7 +17,7 @@ concurrency:
 
 jobs:
   verify:
-    name: typecheck + build
+    name: typecheck + test + build
     runs-on: ubuntu-latest
     timeout-minutes: 10
     defaults:
@@ -47,6 +47,11 @@ jobs:
       # 失败时能一眼看出是类型问题还是打包问题
       - name: 类型检查
         run: npm run typecheck
+
+      # vitest 只转译不检查类型，所以「测试过了」不代表类型对；
+      # 反过来 typecheck 也抓不到逻辑错误。两步都要，且顺序上把更快的放前面。
+      - name: 单元测试
+        run: npm test
 
       - name: 构建
         run: npm run build

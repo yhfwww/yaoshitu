@@ -35,6 +35,8 @@ src/src/
 cmd /c "npm run typecheck"   # tsc -b --noEmit
 cmd /c "npm run dev"         # http://localhost:5173
 cmd /c "npm run build"       # 产物在 src/dist
+cmd /c "npm test"            # vitest run（跑一次）
+cmd /c "npm run test:watch"  # vitest（watch 模式）
 cmd /c "npm run preview"     # 预览生产构建，http://localhost:4173
 cmd /c "npm run icons"       # 从 public/app-icon.svg 重新生成整套 PWA 图标
 ```
@@ -48,6 +50,16 @@ Node ≥ 20.19（或 ≥ 22.12，Vite 8 的要求）；本机与 CI 都用 Node 
 - **源图必须留在 `public/` 下**：生成器的输出目录跟随源图所在目录，没有单独的输出目录参数。
 - **maskable 安全区靠源图构图解决，不要用生成器的 `padding`** —— 它对 maskable / apple 的默认 `padding` 是 `0.3`，补边颜色默认 `white`，会在品牌米色底（`#F1EFE8`）外圈加一道白边。
 - manifest 由 `vite-plugin-pwa` 在**构建时生成**，**不要再手写** `public/manifest.webmanifest`。增删图标要同步改 `vite.config.ts` 里的 `manifest.icons`。
+
+## 测试
+
+- 测试用 **vitest**（`npm test` / `npm run test:watch`）。测试文件与源码同目录：`src/**/*.test.ts`。
+- **纯逻辑测试**（`coordinate.ts` / `datetime.ts` / `schema.ts` / `views.ts`）跑在 node 环境。
+- **需要 DOM 的测试**（`backup.ts` 用 File/FileReader）在文件首行加 `// @vitest-environment jsdom`。
+- **store 测试**依赖 fake-indexeddb：`src/test/setup.ts` 在模块求值前装上假 IndexedDB（因为 `db.ts` 在模块顶层就 `new YaoshituDB()`）。
+- **已知局限**：`layoutPoints` 在角落 (100,100) 堆叠 ≥4 点时 clamp 会导致两点重合（`it.todo` 标注）。
+- ⚠️ **vitest 不做类型检查**：测试过了不代表类型对。`npm run typecheck` 和 `npm test` 是两套独立门禁，CI 都跑。
+- ⚠️ **测试覆盖范围**：只覆盖纯逻辑 + store。**组件渲染、拖拽/键盘/触摸交互、PWA 离线行为没有自动化覆盖**——改这些地方必须手工验证。
 
 ## 硬约束（不是风格偏好，是产品定义）
 
@@ -79,7 +91,7 @@ Node ≥ 20.19（或 ≥ 22.12，Vite 8 的要求）；本机与 CI 都用 Node 
 
 - **提交信息用中文**，前缀 `feat` / `fix` / `docs` / `ci` / `chore` / `refactor`。
 - **推 `main` 会触发 CI**（`.github/workflows/ci.yml`：`npm ci` → `typecheck` → `build`，约 20 秒）。推完要确认那一次运行是绿的。
-- ⚠️ **CI 绿只代表类型正确与可构建，不代表功能正确** —— 当前仓库**没有任何测试**。别把徽标当成功能验证的替代。
+- ⚠️ CI 绿只代表**类型正确 + 测试通过 + 可构建**，不代表功能正确 —— **测试只覆盖纯逻辑与 store**，组件渲染/交互/PWA 行为仍需手工验证。别把徽标当成功能验证的替代。
 - 界面对外可见的改动，README 与 `docs/images/` 里的截图可能会过期，需要重拍。
 
 ## 截图怎么重做

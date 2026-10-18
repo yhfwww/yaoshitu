@@ -99,6 +99,8 @@ npm run dev        # http://localhost:5173
 ```bash
 npm run build      # 类型检查 + 生产构建，产物在 src/dist
 npm run typecheck  # 仅类型检查
+npm test           # 单元测试（vitest，跑一次）
+npm run test:watch # 单元测试（watch 模式）
 npm run preview    # 预览生产构建
 npm run icons      # 从 public/app-icon.svg 重新生成整套 PWA 图标
 ```
@@ -117,7 +119,8 @@ npm run icons      # 从 public/app-icon.svg 重新生成整套 PWA 图标
 | 存储 | Dexie（IndexedDB，schema versioning） | 4 |
 | 坐标系渲染 | 原生 SVG（500 点规模足够，Canvas 留作上万点优化项） | — |
 | PWA | vite-plugin-pwa + Workbox 预缓存 | 2.0 / 7.4 |
-| 工程 | CI 门禁（GitHub Actions：`npm ci` → `typecheck` → `build`） | — |
+| 测试 | vitest（jsdom 提供 DOM，fake-indexeddb 提供 IndexedDB） | 5 |
+| 工程 | CI 门禁（GitHub Actions：`npm ci` → `typecheck` → `test` → `build`） | — |
 | 后端 | 无（一期零外部请求） | — |
 
 ## 目录结构
@@ -131,7 +134,8 @@ yaoshitu/
 │   │   ├── store/               Zustand 全局状态（任务 · 笔记 · 设置 · UI）
 │   │   ├── lib/                 坐标几何与碰撞 · 日期 · 备份 · 视图注册表
 │   │   ├── components/          侧边栏 · 命令面板 · 任务编辑器 · 设置
-│   │   └── views/               7 个视图
+│   │   ├── views/               7 个视图
+│   │   └── test/                测试前置（给 Dexie 装上假 IndexedDB）
 │   └── public/                  图标源图（方案 A）· 生成的 PNG 图标集 · favicon 方案 B
 ├── LICENSE                      MIT
 └── .gitignore                   排除 REF/（第三方参考实现）与未剪裁素材
@@ -163,9 +167,12 @@ yaoshitu/
 
 **二期（未开始）**：注册登录（邮箱 + GitHub OAuth）· 云同步（PocketBase，字段级 LWW 冲突解决）· 同步历史视图 · 浏览器插件快速捕获。
 
+**自动化测试**：`npm test`（vitest，63 个用例）覆盖那些「手点一遍不容易发现」的东西 —— 坐标几何与重叠点散开、按自然日而非 24 小时算的日期差、坐标→四象限的阈值投影（含 50/50 边界）、视图注册表与智能视图文案的阈值是否与常量一致、备份文件的入口校验；以及 store 的任务 CRUD、**回收站 30 天过期**（29 天留 / 31 天清）、导入导出的覆盖语义与快照性。
+
+**测试不覆盖**：React 组件渲染、拖拽 / 键盘 / 触摸交互、PWA 离线行为。这些改动仍必须手工验证，别把 CI 绿当成功能正确。
+
 **已知缺口（诚实清单）**：
 
-- **没有任何自动化测试** —— 有 CI 门禁（`npm ci` → `typecheck` → `build`），但它只保证类型正确与可构建，**不验证功能是否正确**
 - 无深色模式
 - 移动端触摸手势未适配（缺长按菜单 / 底部 sheet 来替代 hover 与拖拽）
 - 无障碍目前是"写的时候注意"，未做系统性验证（键盘完成全流程、读屏实测）
