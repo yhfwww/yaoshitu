@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 // 这个文件要真的用到 File / FileReader / document，所以单独切到 jsdom 环境。
 import { describe, it, expect, vi, afterEach } from "vitest";
-import { readBackupFile, downloadBackup } from "./backup";
+import { readBackupFile, downloadBackup, validateBackup } from "./backup";
 import type { BackupEnvelope, Task } from "../db/schema";
 
 function taskFixture(): Task {
@@ -81,6 +81,19 @@ afterEach(() => {
 });
 
 describe("readBackupFile —— 备份文件的入口校验", () => {
+  it("非法设置回退；备份不能带入账号、令牌和同步元数据", () => {
+    const parsed = validateBackup({ ...envelope(), settings: { defaultView: "illegal", token: "secret", userId: "someone" }, syncQueue: ["foreign"] });
+    expect(parsed.settings.defaultView).toBe("coordinate");
+    expect(JSON.stringify(parsed)).not.toContain("secret");
+    expect(JSON.stringify(parsed)).not.toContain("someone");
+    expect(parsed).not.toHaveProperty("syncQueue");
+  });
+
+  it("未来版本、非法坐标与不完整任务都在写库之前拒绝", () => {
+    expect(() => validateBackup({ ...envelope(), formatVersion: 99 })).toThrow();
+    expect(() => validateBackup(envelope({ tasks: [{ ...taskFixture(), urgency: 101 }] }))).toThrow();
+    expect(() => validateBackup({ ...envelope(), tasks: [{ id: "broken" }] })).toThrow();
+  });
   it("接受合法信封，任务原样读出", async () => {
     const env = envelope({ tasks: [taskFixture()] });
     const parsed = await readBackupFile(fileWith(JSON.stringify(env)));

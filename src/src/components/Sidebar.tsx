@@ -3,6 +3,7 @@ import { VIEWS, SMART_VIEWS } from "../lib/views";
 import { Logo } from "./Logo";
 import { Icon } from "./Icon";
 import { daysAgo } from "../lib/datetime";
+import { useSync } from "../lib/sync/runtime";
 
 export function Sidebar({ onOpenSettings }: { onOpenSettings: () => void }) {
   const view = useStore((s) => s.view);
@@ -11,6 +12,9 @@ export function Sidebar({ onOpenSettings }: { onOpenSettings: () => void }) {
   const setSmartView = useStore((s) => s.setSmartView);
   const openEditor = useStore((s) => s.openEditor);
   const lastBackupAt = useStore((s) => s.settings.lastBackupAt);
+  const account = useSync((s) => s.account);
+  const syncStatus = useSync((s) => s.status);
+  const pending = useSync((s) => s.pending);
 
   return (
     <aside
@@ -122,6 +126,7 @@ export function Sidebar({ onOpenSettings }: { onOpenSettings: () => void }) {
         }}
       >
         <div style={{ flex: 1 }}>
+          <div role="status" style={{ marginBottom: 4 }}>{account ? `${syncStatus}${pending ? ` · 待同步 ${pending} 项` : ""}` : "游客 · 本地模式"}</div>
           {lastBackupAt
             ? `上次备份 ${daysAgo(lastBackupAt)} 天前`
             : "尚未备份（设置页可导出）"}

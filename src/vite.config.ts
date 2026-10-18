@@ -2,7 +2,7 @@ import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react";
 import { VitePWA } from "vite-plugin-pwa";
 
-// 要事图 / Yaoshitu —— 本地优先，无外部请求。
+// 要事图 / Yaoshitu —— 游客本地优先；配置后可选 GitHub 登录与同步。
 // base 使用相对路径，便于任意静态托管（含 GitHub Pages 这类子路径部署）。
 export default defineConfig({
   plugins: [

@@ -1,0 +1,14 @@
+{$APP_DOMAIN} {
+  encode zstd gzip
+  handle /api/* {
+    reverse_proxy pocketbase:8090
+  }
+  handle /_/* {
+    respond "Use the private administration tunnel" 404
+  }
+  handle {
+    root * /srv
+    try_files {path} /index.html
+    file_server
+  }
+}

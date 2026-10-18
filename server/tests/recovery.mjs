@@ -1,0 +1,11 @@
+import assert from "node:assert/strict";
+import { readFile } from "node:fs/promises";
+import PocketBase from "../../src/node_modules/pocketbase/dist/pocketbase.es.mjs";
+const manifest = JSON.parse(await readFile(new URL("../../.tmp/recovery-manifest.json", import.meta.url), "utf8"));
+const admin = new PocketBase("http://127.0.0.1:8100");
+await admin.collection("_superusers").authWithPassword(process.env.PB_TEST_ADMIN, process.env.PB_TEST_PASSWORD);
+const client = await admin.collection("users").impersonate(manifest.userId, 60);
+const restored = await client.send("/api/yaoshitu/pull", { method: "GET" });
+assert.equal(restored.items[0].values.title, "PRIVATE-TITLE");
+assert.equal(restored.items[0].values.notes, "SECRET-NOTE");
+console.log("PASS: a fresh PocketBase instance restores the snapshot and decrypts the original data with the separately retained key");

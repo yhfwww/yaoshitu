@@ -310,8 +310,11 @@ describe("设置与笔记", () => {
     expect((await db.notes.get(n.id))!.pinned).toBe(true);
 
     await useStore.getState().deleteNote(n.id);
-    expect(useStore.getState().notes).toHaveLength(0);
-    expect(await db.notes.count()).toBe(0);
+    expect(useStore.getState().notes[0].deletedAt).toBeTypeOf("number");
+    expect(await db.notes.count()).toBe(1);
+    expect(useStore.getState().exportBackup().notes[0].deletedAt).toBeTypeOf("number");
+    await useStore.getState().restoreNote(n.id);
+    expect(useStore.getState().notes[0].deletedAt).toBeUndefined();
   });
 
   it("deleteNote / togglePinNote 对未知 id 静默忽略", async () => {

@@ -12,7 +12,7 @@ export function PrinciplesView() {
   const [editing, setEditing] = useState<Note | null>(null);
   const [creating, setCreating] = useState(false);
 
-  const sorted = [...notes].sort((a, b) => {
+  const sorted = notes.filter((n) => !n.deletedAt).sort((a, b) => {
     if (a.pinned !== b.pinned) return a.pinned ? -1 : 1;
     return b.updatedAt - a.updatedAt;
   });

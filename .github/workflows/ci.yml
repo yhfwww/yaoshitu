@@ -53,5 +53,8 @@ jobs:
       - name: 单元测试
         run: npm test
 
+      - name: 同步服务端协议测试
+        run: node --test ../server/tests/merge.test.cjs
+
       - name: 构建
         run: npm run build

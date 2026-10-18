@@ -12,6 +12,10 @@ export function ArchiveView() {
   const restoreTask = useStore((s) => s.restoreTask);
   const unarchiveTask = useStore((s) => s.unarchiveTask);
   const purgeTask = useStore((s) => s.purgeTask);
+  const trashTask = useStore((s) => s.trashTask);
+  const notes = useStore((s) => s.notes);
+  const restoreNote = useStore((s) => s.restoreNote);
+  const deletedNotes = notes.filter((n) => n.deletedAt !== undefined);
 
   const [tab, setTab] = useState<"trash" | "archived">("trash");
 
@@ -47,7 +51,7 @@ export function ArchiveView() {
             }}
             onClick={() => setTab("trash")}
           >
-            回收站 {trash.length ? `(${trash.length})` : ""}
+            回收站 {trash.length + deletedNotes.length ? `(${trash.length + deletedNotes.length})` : ""}
           </button>
           <button
             className="btn"
@@ -63,9 +67,13 @@ export function ArchiveView() {
       </div>
 
       <div style={{ flex: 1, overflowY: "auto", minHeight: 0 }}>
+        {tab === "trash" && deletedNotes.map((note) => <div key={note.id} style={{ padding: 16, borderBottom: "1px solid var(--c-border)" }}>
+          <span>笔记 · {note.title}</span>{" "}
+          <button className="btn" onClick={() => restoreNote(note.id)}>恢复笔记</button>
+        </div>)}
         {tab === "trash" ? (
-          trash.length === 0 ? (
-            <EmptyState title="回收站是空的" hint="删除的任务会先进入这里，30 天后自动清除。" />
+          trash.length + deletedNotes.length === 0 ? (
+            <EmptyState title="回收站是空的" hint="删除的任务和笔记会先进入这里，30 天后自动清除。" />
           ) : (
             <ul style={{ listStyle: "none", margin: 0, padding: 0 }} role="list">
               {trash.map((t) => (
@@ -100,8 +108,8 @@ export function ArchiveView() {
                 <button className="btn" onClick={() => unarchiveTask(t.id)}>
                   <Icon name="restore" size={14} /> 恢复
                 </button>
-                <button className="btn btn-danger" onClick={() => purgeTask(t.id)}>
-                  彻底删除
+                <button className="btn" onClick={() => trashTask(t.id)}>
+                  移入回收站
                 </button>
               </li>
             ))}

@@ -6,6 +6,8 @@ import { downloadBackup, readBackupFile } from "../lib/backup";
 import { daysAgo } from "../lib/datetime";
 import { Logo } from "./Logo";
 import { Icon } from "./Icon";
+import { SyncSettings } from "./SyncSettings";
+import { useSync } from "../lib/sync/runtime";
 
 export function SettingsDialog({ onClose }: { onClose: () => void }) {
   const settings = useStore((s) => s.settings);
@@ -14,6 +16,9 @@ export function SettingsDialog({ onClose }: { onClose: () => void }) {
   const importBackup = useStore((s) => s.importBackup);
   const fileRef = useRef<HTMLInputElement>(null);
   const [msg, setMsg] = useState<string | null>(null);
+  const account = useSync((s) => s.account);
+  const [mode, setMode] = useState<"merge" | "replace">("merge");
+  const [pendingFile, setPendingFile] = useState<File | null>(null);
 
   async function onExport() {
     downloadBackup(exportBackup());
@@ -24,7 +29,7 @@ export function SettingsDialog({ onClose }: { onClose: () => void }) {
   async function onImportFile(file: File) {
     try {
       const env = await readBackupFile(file);
-      await importBackup(env);
+      await importBackup(env, account ? "merge" : mode);
       await updateSettings({ lastBackupAt: Date.now() });
       setMsg(`已导入 ${env.tasks.length} 个任务、${env.notes.length} 条笔记`);
     } catch (err) {
@@ -91,9 +96,15 @@ export function SettingsDialog({ onClose }: { onClose: () => void }) {
         {/* 数据 */}
         <h3 style={{ margin: "20px 0 8px", fontSize: 14 }}>数据</h3>
         <p style={{ margin: 0, fontSize: 12, color: "var(--c-text-muted)" }}>
-          你的数据，本地优先。数据只存在本机浏览器中，不会上传。
+          {account ? "本地优先，账号数据会同步到云端。备份包含归档、回收站及笔记，不包含登录凭据。" : "游客数据只存在本机浏览器中。备份可在不登录时导出和恢复。"}
           {settings.lastBackupAt ? ` 上次备份 ${daysAgo(settings.lastBackupAt)} 天前。` : ""}
         </p>
+        <label style={{ display: "block", fontSize: 12, marginTop: 10 }}>导入方式
+          <select className="input" value={account ? "merge" : mode} disabled={!!account} onChange={(e) => setMode(e.target.value as "merge" | "replace")}>
+            <option value="merge">合并为副本，保留现有数据</option>
+            <option value="replace">覆盖本机游客数据</option>
+          </select>
+        </label>
         <div style={{ display: "flex", gap: 8, marginTop: 10 }}>
           <button className="btn" onClick={onExport}>
             导出 JSON 备份
@@ -108,14 +119,21 @@ export function SettingsDialog({ onClose }: { onClose: () => void }) {
             style={{ display: "none" }}
             onChange={(e) => {
               const f = e.target.files?.[0];
-              if (f) onImportFile(f);
+              if (f) setPendingFile(f);
               e.target.value = "";
             }}
           />
         </div>
+        {pendingFile && <div style={{ marginTop: 10, fontSize: 12 }}>
+          <p>{account || mode === "merge" ? "将备份内容添加为副本。账号模式下会上传至云端。" : "将替换本机全部游客任务、笔记和设置，建议先导出当前备份。"}</p>
+          <button className="btn" onClick={() => { const file = pendingFile; setPendingFile(null); void onImportFile(file); }}>确认导入 {pendingFile.name}</button>{" "}
+          <button className="btn" onClick={() => setPendingFile(null)}>取消</button>
+        </div>}
         {msg && (
           <div style={{ marginTop: 8, fontSize: 12, color: "var(--c-primary-dark)" }}>{msg}</div>
         )}
+
+        <SyncSettings />
 
         {/* 关于 */}
         <h3 style={{ margin: "20px 0 8px", fontSize: 14 }}>关于</h3>
@@ -135,7 +153,7 @@ export function SettingsDialog({ onClose }: { onClose: () => void }) {
               要事图 / Yaoshitu
             </div>
             <div style={{ fontSize: 12, color: "var(--c-text-muted)" }}>
-              要事一图，轻重自现。 · v0.1.0 · 本地优先 · 开源（MIT）
+              要事一图，轻重自现。 · v0.2.0-dev · 本地优先 · 开源（MIT）
             </div>
           </div>
         </div>

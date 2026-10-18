@@ -72,6 +72,34 @@ export interface Note {
   pinned: boolean;
   createdAt: number;
   updatedAt: number;
+  deletedAt?: number;
+}
+
+export type EntityKind = "task" | "note" | "settings";
+export type SyncValues = Record<string, unknown>;
+export interface SyncDocument {
+  key: string;
+  kind: EntityKind;
+  entityId: string;
+  revision: number;
+  values: SyncValues;
+  purged: boolean;
+  conflicts: { field: string; value: unknown; revision: number }[];
+}
+export interface SyncOperation {
+  id: string;
+  key: string;
+  kind: EntityKind;
+  entityId: string;
+  baseRevision: number;
+  changes: SyncValues;
+  purge: boolean;
+  createdAt: number;
+}
+export interface Workspace {
+  userId: string;
+  server: string;
+  label: string;
 }
 
 export interface Settings {

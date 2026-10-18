@@ -1,0 +1,26 @@
+services:
+  pocketbase:
+    build: .
+    restart: unless-stopped
+    environment:
+      YAOSHITU_DATA_KEY: ${YAOSHITU_DATA_KEY:?Generate a permanent 32-character data key}
+      YAOSHITU_SETTINGS_KEY: ${YAOSHITU_SETTINGS_KEY:?Generate a permanent 32-character settings key}
+    command: ["serve", "--http=0.0.0.0:8090", "--automigrate=false", "--encryptionEnv=YAOSHITU_SETTINGS_KEY", "--origins=https://${APP_DOMAIN:?Set APP_DOMAIN}"]
+    ports: ["127.0.0.1:8090:8090"]
+    volumes: ["pb_data:/pb/pb_data"]
+  web:
+    build:
+      context: ..
+      dockerfile: server/web.Dockerfile
+      args:
+        VITE_POCKETBASE_URL: https://${APP_DOMAIN}
+    restart: unless-stopped
+    environment:
+      APP_DOMAIN: ${APP_DOMAIN}
+    ports: ["80:80", "443:443", "443:443/udp"]
+    volumes: ["caddy_data:/data", "caddy_config:/config"]
+    depends_on: [pocketbase]
+volumes:
+  pb_data:
+  caddy_data:
+  caddy_config:

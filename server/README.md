@@ -1,0 +1,74 @@
+# Ubuntu 部署要事图 v0.2
+
+目标域名：`yaoshi.xyz`（用户计划注册，尚未验证归属、DNS 或证书）。使用 Docker Compose：Caddy 提供 HTTPS 和静态网页，PocketBase 0.40.5 管理 SQLite。镜像版本固定；升级前先验证迁移和恢复。
+
+## 1. 准备域名与配置
+
+在 Ubuntu 安装 Docker Engine 与 Compose 插件，把域名 A 记录指向服务器；仅在 IPv6 可用时添加 AAAA。允许 80/443 入站，8090 只绑定服务器回环地址。
+
+将整个工程放到服务器，进入 `server/`。复制 `.env.example` 为 `.env`，设置：
+
+```dotenv
+APP_DOMAIN=yaoshi.xyz
+YAOSHITU_DATA_KEY=独立生成的32位随机英文字母数字
+YAOSHITU_SETTINGS_KEY=另一个独立生成的32位随机英文字母数字
+```
+
+上面密钥值是说明，不能原样使用。可在密码管理器分别生成两个随机 32 位字母数字密钥；`.env` 设为仅部署用户可读。不要提交、发送到聊天或放进 `VITE_*`。密钥单独离线备份，重启和升级时保持不变；丢失数据密钥将无法恢复业务内容。
+
+```sh
+docker compose up -d --build
+```
+
+首次初始化通过下一节的本地管理界面创建超级用户。这是后台管理员凭据，不是用户邮箱登录入口。
+
+## 2. 配置 GitHub OAuth
+
+通过 SSH 建立管理隧道：
+
+```sh
+ssh -L 8090:127.0.0.1:8090 你的部署用户@服务器地址
+```
+
+本机浏览器打开 `http://127.0.0.1:8090/_/`。公开站点屏蔽后台网页，管理通过此隧道进行。
+
+全新实例先运行 `docker compose logs pocketbase`，找到一次性初始化链接，将其中主机部分改为 `127.0.0.1:8090`，保留完整路径和片段后在隧道内打开，完成超级用户初始化。不要公开或转发此链接。
+
+在 GitHub Developer settings → OAuth Apps 新建应用：
+
+- Homepage URL：`https://yaoshi.xyz`
+- Authorization callback URL：`https://yaoshi.xyz/api/oauth2-redirect`
+
+在 PocketBase 的 `users` 集合 Options → OAuth2，只配置并启用 GitHub，填写 Client ID 和 Client Secret。Secret 仅存在服务器设置里，不进入前端。密码与 OTP 登录由迁移关闭，服务端钩子额外拒绝其他 OAuth 提供商。
+
+前端构建已通过 Compose 使用 `VITE_POCKETBASE_URL=https://yaoshi.xyz`。若修改域名，需要更新 GitHub 回调及重新构建前端。未配置服务地址的本地构建仅提供游客模式，不会自行联网。
+
+## 3. 备份和恢复
+
+迁移配置每日 03:00 UTC 自动快照，最近 7 份。进入后台 Settings → Backups 检查计划，配置专用的异地 S3 兼容存储；配置后手动创建一次快照并验证目标存储里存在。S3 凭据由 `YAOSHITU_SETTINGS_KEY` 加密保存；用户任务正文由 `YAOSHITU_DATA_KEY` 加密保存。备份对象访问设为私有。
+
+上线前必须演练：在隔离目录或新容器恢复快照，提供相同的两个密钥，再验证账号、任务、归档、笔记和删除状态。使用内置快照接口；若直接复制 `pb_data`，必须先停服务保证一致性。对象存储若还有业务附件，需要独立规划备份，当前版本无附件。
+
+注销删除当前在线数据，历史快照仍按 7 份轮换；异地对象的生命周期也需匹配该保留策略。不要对用户宣称历史快照立即被抹除。
+
+## 4. 上线验收
+
+1. GitHub 首次注册/再次登录成功；用户无需授权仓库读写权限。
+2. 游客数据不自动上传；明确导入后账号空间有副本，退出后游客数据仍在。
+3. 两台设备分别改标题与截止日期，联网后都保留；同字段冲突在设置可恢复旧值。
+4. 断网修改、刷新、联网后补传；退出 A 再进入 B 不出现 A 的数据。
+5. 回收站恢复、永久删除防复活、JSON 恢复、服务端快照恢复都通过。
+6. 验证 HTTPS、SSE、后台私有访问和异地备份。
+
+## 本机开发和测试
+
+前端 `src/.env.local` 可设置 `VITE_POCKETBASE_URL=http://127.0.0.1:8099`；本地 HTTP 仅允许回环地址。PocketBase 从本目录运行，设置数据密钥并执行：
+
+```sh
+./pocketbase serve --http=127.0.0.1:8099 --automigrate=false
+node --test tests/merge.test.cjs
+```
+
+完整集成测试仅允许本机临时服务。设置 `PB_TEST_ADMIN` 和 `PB_TEST_PASSWORD` 为临时超级用户凭据，从仓库根目录运行 `node server/tests/integration.mjs`。可选 `PB_TEST_DATA` 指向临时 `data.db`，会额外验证 SQLite 正文非明文并生成恢复演练快照和 `.tmp/recovery-manifest.json`。测试创建的账号最终会清理。
+
+恢复演练：将该快照解压到新的临时数据目录，以原数据密钥和相同 hooks 启动到 8100，再从根目录运行 `node server/tests/recovery.mjs`。本机开发未设置 settings 加密参数时只需数据密钥；生产 Compose 始终同时使用两个密钥。

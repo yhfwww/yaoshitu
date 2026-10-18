@@ -3,6 +3,10 @@ node_modules/
 dist/
 dist-ssr/
 *.local
+.tmp/
+server/pb_data/
+server/pocketbase*
+server/.env
 
 # 第三方参考实现：Focus(Flutter) / GSD Task Manager(Next.js)
 # 均为他人代码，且各自带有 .git，不入本仓库

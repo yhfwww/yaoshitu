@@ -1,0 +1,11 @@
+.git
+REF
+generated-images
+.tmp
+**/node_modules
+**/dist
+**/*.zip
+**/.env
+**/.env.local
+server/pb_data
+TODO.md

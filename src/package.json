@@ -1,7 +1,7 @@
 {
   "name": "yaoshitu",
   "private": true,
-  "version": "0.1.0",
+  "version": "0.2.0-dev",
   "description": "要事图 / Yaoshitu — 本地优先的坐标系任务管理器",
   "type": "module",
   "scripts": {
@@ -15,6 +15,7 @@
   },
   "dependencies": {
     "dexie": "^4.4.5",
+    "pocketbase": "^0.26.8",
     "react": "^19.2.8",
     "react-dom": "^19.2.8",
     "zustand": "^5.0.15"

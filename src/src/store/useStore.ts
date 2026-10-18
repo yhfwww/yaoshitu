@@ -1,6 +1,8 @@
 // 全局状态 —— Zustand（任务/笔记/设置 + UI）
 import { create } from "zustand";
-import { db, SETTINGS_ID, getSettings } from "../db/db";
+import { db, workspace, SETTINGS_ID, getSettings, DEFAULT_SETTINGS } from "../db/db";
+import { writeEntity, purgeEntity, updateEntity } from "../lib/sync/local";
+import { validateBackup } from "../lib/backup";
 import type {
   Task,
   Note,
@@ -47,6 +49,7 @@ interface AppState {
 
   // 生命周期
   init: () => Promise<void>;
+  reload: () => Promise<void>;
 
   // 任务
   addTask: (input: TaskInput) => Promise<Task>;
@@ -63,6 +66,7 @@ interface AppState {
   addNote: (input: { title: string; body: string; tags: string[] }) => Promise<void>;
   updateNote: (id: string, patch: Partial<Note>) => Promise<void>;
   deleteNote: (id: string) => Promise<void>;
+  restoreNote: (id: string) => Promise<void>;
   togglePinNote: (id: string) => Promise<void>;
 
   // 设置
@@ -78,7 +82,7 @@ interface AppState {
 
   // 导入导出
   exportBackup: () => BackupEnvelope;
-  importBackup: (env: BackupEnvelope) => Promise<void>;
+  importBackup: (env: BackupEnvelope, mode?: "replace" | "merge") => Promise<void>;
 }
 
 export const useStore = create<AppState>()((set, get) => ({
@@ -104,7 +108,7 @@ export const useStore = create<AppState>()((set, get) => ({
       ]);
 
       // 首次启动注入示例数据（仅在从未初始化过时）
-      if (!settings.seeded) {
+      if (!settings.seeded && !workspace) {
         const seededTasks = seedTasks();
         const seededNotes = seedNotes();
         await db.tasks.bulkAdd(seededTasks);
@@ -127,6 +131,11 @@ export const useStore = create<AppState>()((set, get) => ({
     return initPromise;
   },
 
+  async reload() {
+    const [tasks, notes, settings] = await Promise.all([db.tasks.toArray(), db.notes.toArray(), getSettings()]);
+    set({ tasks, notes, settings, view: settings.defaultView, selectedTaskId: null, editor: { open: false }, commandOpen: false, ready: true });
+  },
+
   async addTask(input) {
     const now = Date.now();
     const task: Task = {
@@ -145,16 +154,14 @@ export const useStore = create<AppState>()((set, get) => ({
       timeEntries: [],
       dependencies: [],
     };
-    await db.tasks.add(task);
+    await writeEntity("task", task);
     set((s) => ({ tasks: [...s.tasks, task] }));
     return task;
   },
 
   async updateTask(id, patch) {
-    const existing = get().tasks.find((t) => t.id === id);
-    if (!existing) return;
-    const updated: Task = { ...existing, ...patch, id, updatedAt: Date.now() };
-    await db.tasks.put(updated);
+    const updated = await updateEntity<Task>("task", id, { ...patch, updatedAt: Date.now() });
+    if (!updated) return;
     set((s) => ({
       tasks: s.tasks.map((t) => (t.id === id ? updated : t)),
     }));
@@ -179,21 +186,28 @@ export const useStore = create<AppState>()((set, get) => ({
   },
 
   async purgeTask(id) {
-    await db.tasks.delete(id);
+    await purgeEntity("task", id);
     set((s) => ({ tasks: s.tasks.filter((t) => t.id !== id) }));
   },
 
   async purgeTrashOlderThanRetention() {
+    // Account retention is authoritative on the server, including offline clients.
+    if (workspace) return 0;
     const cutoff = Date.now() - TRASH_RETENTION_MS;
     const toPurge = get().tasks.filter(
       (t) => t.deletedAt !== undefined && t.deletedAt < cutoff,
     );
-    if (toPurge.length === 0) return 0;
-    await db.tasks.bulkDelete(toPurge.map((t) => t.id));
+    const notesToPurge = get().notes.filter((n) => n.deletedAt !== undefined && n.deletedAt < cutoff);
+    if (toPurge.length === 0 && notesToPurge.length === 0) return 0;
+    await db.transaction("rw", db.tasks, db.notes, async () => {
+      await db.tasks.bulkDelete(toPurge.map((t) => t.id));
+      await db.notes.bulkDelete(notesToPurge.map((n) => n.id));
+    });
     set((s) => ({
       tasks: s.tasks.filter((t) => !(t.deletedAt !== undefined && t.deletedAt < cutoff)),
+      notes: s.notes.filter((n) => !(n.deletedAt !== undefined && n.deletedAt < cutoff)),
     }));
-    return toPurge.length;
+    return toPurge.length + notesToPurge.length;
   },
 
   async archiveTask(id) {
@@ -215,21 +229,27 @@ export const useStore = create<AppState>()((set, get) => ({
       createdAt: now,
       updatedAt: now,
     };
-    await db.notes.add(note);
+    await writeEntity("note", note);
     set((s) => ({ notes: [...s.notes, note] }));
   },
 
   async updateNote(id, patch) {
-    const existing = get().notes.find((n) => n.id === id);
-    if (!existing) return;
-    const updated: Note = { ...existing, ...patch, id, updatedAt: Date.now() };
-    await db.notes.put(updated);
+    const updated = await updateEntity<Note>("note", id, { ...patch, updatedAt: Date.now() });
+    if (!updated) return;
     set((s) => ({ notes: s.notes.map((n) => (n.id === id ? updated : n)) }));
   },
 
   async deleteNote(id) {
-    await db.notes.delete(id);
-    set((s) => ({ notes: s.notes.filter((n) => n.id !== id) }));
+    const updated = await updateEntity<Note>("note", id, { deletedAt: Date.now(), updatedAt: Date.now() });
+    if (!updated) return;
+    set((s) => ({ notes: s.notes.map((n) => n.id === id ? updated : n) }));
+  },
+
+  async restoreNote(id) {
+    const existing = await db.notes.get(id);
+    if (!existing?.deletedAt) return;
+    await updateEntity<Note>("note", id, { deletedAt: undefined, updatedAt: Date.now() });
+    await get().reload();
   },
 
   async togglePinNote(id) {
@@ -240,7 +260,7 @@ export const useStore = create<AppState>()((set, get) => ({
 
   async updateSettings(patch) {
     const next = { ...get().settings, ...patch };
-    await db.settings.put({ ...next, id: SETTINGS_ID });
+    await writeEntity("settings", { ...next, id: SETTINGS_ID }, get().settings);
     set({ settings: next });
   },
 
@@ -271,24 +291,37 @@ export const useStore = create<AppState>()((set, get) => ({
 
   exportBackup() {
     const { tasks, notes, settings } = get();
-    return {
+    return structuredClone({
       app: "yaoshitu" as const,
       formatVersion: 1 as const,
       exportedAt: new Date().toISOString(),
       tasks,
       notes,
       settings,
-    };
+    });
   },
 
-  async importBackup(env) {
+  async importBackup(env, mode = "replace") {
+    env = validateBackup(env);
+    if (mode === "merge") {
+      const ids = new Map(env.tasks.map((task) => [task.id, newId()]));
+      await db.transaction("rw", db.tasks, db.notes, db.settings, db.outbox, db.documents, async () => {
+        for (const task of env.tasks) {
+          await writeEntity("task", { ...task, id: ids.get(task.id)!, parentId: task.parentId ? ids.get(task.parentId) : undefined, dependencies: task.dependencies.map((id) => ids.get(id)).filter((id): id is string => !!id), updatedAt: Date.now() });
+        }
+        for (const note of env.notes) await writeEntity("note", { ...note, id: newId(), updatedAt: Date.now() });
+      });
+      await get().reload();
+      return;
+    }
+    if (workspace) throw new Error("账号空间请使用合并导入，避免覆盖其他设备的数据");
     await db.transaction("rw", db.tasks, db.notes, db.settings, async () => {
       await db.tasks.clear();
       await db.notes.clear();
       await db.settings.clear();
       if (env.tasks?.length) await db.tasks.bulkAdd(env.tasks);
       if (env.notes?.length) await db.notes.bulkAdd(env.notes);
-      await db.settings.put({ ...env.settings, id: SETTINGS_ID });
+      await db.settings.put({ ...DEFAULT_SETTINGS, ...env.settings, id: SETTINGS_ID, seeded: true });
     });
     const [tasks, notes, settings] = await Promise.all([
       db.tasks.toArray(),

@@ -12,6 +12,7 @@ import { DashboardView } from "./views/DashboardView";
 import { PrinciplesView } from "./views/PrinciplesView";
 import { ArchiveView } from "./views/ArchiveView";
 import type { ViewId } from "./db/schema";
+import { bootSync } from "./lib/sync/runtime";
 
 const VIEW_COMPONENTS: Record<ViewId, ComponentType> = {
   coordinate: CoordinateView,
@@ -43,7 +44,7 @@ export default function App() {
   const [settingsOpen, setSettingsOpen] = useState(false);
 
   useEffect(() => {
-    void init();
+    void init().then(bootSync);
   }, [init]);
 
   useEffect(() => {

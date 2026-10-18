@@ -6,9 +6,9 @@
 
 [![CI](https://github.com/yhfwww/yaoshitu/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/yhfwww/yaoshitu/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-534AB7.svg)](#许可证)
-![Status: draft](https://img.shields.io/badge/status-v0.1.0--draft-orange.svg)
+![Status: draft](https://img.shields.io/badge/status-v0.2.0--dev-534AB7.svg)
 
-> ⚠️ **当前为草稿阶段。** 一期 MVP 功能已可运行，但对外发布前的工程化收尾尚未完成（**自动化测试**等）。数据模型与交互仍可能调整，详见 [项目状态与路线图](#项目状态与路线图)。
+> **当前为 v0.2 开发版。** 一期本地 MVP 可运行；新增可选 GitHub 登录与同步，本机协议和恢复验证已通过，正式域名、真实 OAuth 与两设备验收尚未完成。详见 [同步设计](docs/sync-v0.2.md) 和 [Ubuntu 部署说明](server/README.md)。
 
 ---
 
@@ -76,7 +76,8 @@
 
 - **命令面板** —— `Ctrl/Cmd + K` 跳视图 / 新建 / 搜索
 - **快捷键** —— `n` 新建、`/` 搜索、`Esc` 取消选中
-- **本地优先** —— 数据只写进浏览器 IndexedDB，**零外部请求、无遥测**
+- **本地优先** —— 页面操作先写浏览器 IndexedDB，游客模式零业务外部请求、无遥测；GitHub 登录后可选云同步
+- **账号隔离与同步** —— 游客、不同账号分别存储；持久队列、字段合并、服务器版本检查与冲突旧值恢复
 - **JSON 导入导出** —— 版本化备份信封（`app: "yaoshitu"`, `formatVersion: 1`），设置页显示"上次备份 N 天前"
 - **默认视图可配** —— 默认坐标系，可在设置里更改
 - **无障碍** —— 语义化标签、`role`、`aria-*`、可见焦点环；坐标系不依赖色相表意（象限用位置 + 颜色双重编码），列表视图为无障碍兜底通道
@@ -105,7 +106,9 @@ npm run preview    # 预览生产构建
 npm run icons      # 从 public/app-icon.svg 重新生成整套 PWA 图标
 ```
 
-首次启动会自动注入一份示例数据（10 个任务 + 2 条原则笔记），方便直接看到坐标系的效果；设置页可导入/导出 JSON 覆盖。
+游客首次启动会自动注入一份示例数据（10 个任务 + 2 条原则笔记）；设置页可导出完整 JSON，导入默认合并为副本。游客可选择覆盖恢复，账号空间只允许合并。云同步需要配置服务地址，详见 [Ubuntu 部署说明](server/README.md)。
+
+![账号与同步设置（本机实拍，尚未配置正式 OAuth）](docs/images/settings-sync.png)
 
 ---
 
@@ -121,13 +124,14 @@ npm run icons      # 从 public/app-icon.svg 重新生成整套 PWA 图标
 | PWA | vite-plugin-pwa + Workbox 预缓存 | 2.0 / 7.4 |
 | 测试 | vitest（jsdom 提供 DOM，fake-indexeddb 提供 IndexedDB） | 5 |
 | 工程 | CI 门禁（GitHub Actions：`npm ci` → `typecheck` → `test` → `build`） | — |
-| 后端 | 无（一期零外部请求） | — |
+| 可选后端 | 自托管 PocketBase + SQLite（游客无需后端） | 0.40.5 |
 
 ## 目录结构
 
 ```
 yaoshitu/
 ├── docs/                        需求规格 · 品牌系统 · 工作日志
+├── server/                      PocketBase 迁移/同步接口/加密/Ubuntu 部署
 ├── src/                         一期 MVP 应用本体
 │   ├── src/
 │   │   ├── db/                  schema（全量建模）/ Dexie 访问层 / 示例数据
@@ -145,8 +149,9 @@ yaoshitu/
 
 ## 数据与隐私
 
-- **唯一真相源**是 IndexedDB（库名 `yaoshitu`），通过 Dexie 的 versioning 做 schema 升级，迁移不丢数据。
-- 一期**不发任何网络请求**：没有账号、没有同步、没有分析埋点。
+- **本机读写入口**是 IndexedDB（游客库名 `yaoshitu`，账号按服务器与用户隔离），通过 Dexie versioning 升级。跨设备合并以服务器版本为准。
+- 游客不启用同步；登录仅支持 GitHub，不维护用户密码，无分析埋点。首次登录不会自动上传游客数据。
+- 云端业务正文和冲突旧值静态加密，服务器持钥；浏览器数据与导出的 JSON 默认不加密。服务器备份和用户 JSON 是独立恢复路径，不能用同步代替备份。
 - service worker 只预缓存应用自身的静态资源（同源），**不向任何域外地址发请求** —— 离线能力不引入第三方运行时依赖，Workbox 已随构建产物打进本地文件。
 - 数据模型一次性全量建模（子任务、递归、时间追踪、依赖、提醒等字段都在 schema 里），UI 分批上线 —— 具体"已建模未出 UI"的清单直接写在应用的设置页里，不夸大实装范围。
 - 导入导出是你自己的事：导出即得到一个人类可读的 JSON 文件，随时可带走。
@@ -165,9 +170,9 @@ yaoshitu/
 - 依赖 `dependencies`
 - 提醒 `reminderAt`
 
-**二期（未开始）**：注册登录（邮箱 + GitHub OAuth）· 云同步（PocketBase，字段级 LWW 冲突解决）· 同步历史视图 · 浏览器插件快速捕获。
+**v0.2（实施中）**：本地游客 + 仅 GitHub 登录、账号空间隔离、PocketBase 字段同步、删除防复活、完整备份、静态加密与 Ubuntu 部署配置。本机协议验证及快照恢复演练已通过；真实 GitHub 回调、两设备离线验收、Ubuntu 容器运行与异地备份配置待部署。独立同步历史视图、插件仍未开始。
 
-**自动化测试**：`npm test`（vitest，63 个用例）覆盖那些「手点一遍不容易发现」的东西 —— 坐标几何与重叠点散开、按自然日而非 24 小时算的日期差、坐标→四象限的阈值投影（含 50/50 边界）、视图注册表与智能视图文案的阈值是否与常量一致、备份文件的入口校验；以及 store 的任务 CRUD、**回收站 30 天过期**（29 天留 / 31 天清）、导入导出的覆盖语义与快照性。
+**自动化测试**：`npm test` 覆盖坐标、日期、视图、完整备份校验、store CRUD、回收站、本地事务与账号隔离、模拟断网重试。服务端纯协议测试：`node --test server/tests/merge.test.cjs`。真实临时 PocketBase 集成与恢复演练见 [部署说明](server/README.md)。
 
 **测试不覆盖**：React 组件渲染、拖拽 / 键盘 / 触摸交互、PWA 离线行为。这些改动仍必须手工验证，别把 CI 绿当成功能正确。
 
