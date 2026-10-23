@@ -1,15 +1,19 @@
 # Ubuntu 部署要事图 v0.2
 
-目标域名：`yaoshi.xyz`（用户计划注册，尚未验证归属、DNS 或证书）。使用 Docker Compose：Caddy 提供 HTTPS 和静态网页，PocketBase 0.40.5 管理 SQLite。镜像版本固定；升级前先验证迁移和恢复。
+目标域名：`yaoshitu.xyz`（2026-10-23 确认使用，尚未验证注册归属、DNS 或证书）。使用 Docker Compose：Caddy 提供 HTTPS 和静态网页，PocketBase 0.40.5 管理 SQLite。镜像版本固定；升级前先验证迁移和恢复。
 
 ## 1. 准备域名与配置
 
 在 Ubuntu 安装 Docker Engine 与 Compose 插件，把域名 A 记录指向服务器；仅在 IPv6 可用时添加 AAAA。允许 80/443 入站，8090 只绑定服务器回环地址。
 
+首次部署先检查 Ubuntu 版本、内存、磁盘、Docker 和 80/443 端口占用。若已有宝塔、1Panel、Nginx 或 Caddy 承载其他网站，先复用已有 HTTPS 入口，不直接启动本 Compose 的 web 服务抢占端口。Docker 安装步骤以官方 Ubuntu 文档为准：https://docs.docker.com/engine/install/ubuntu/ 。
+
+DNS 根域名记录为 `@`、类型 `A`、值为服务器公网 IPv4。初次验收先使用直连解析；确认 HTTPS、OAuth 和同步后，再决定是否启用 Cloudflare 代理。域名未注册、解析未生效时，不视为已完成部署。
+
 将整个工程放到服务器，进入 `server/`。复制 `.env.example` 为 `.env`，设置：
 
 ```dotenv
-APP_DOMAIN=yaoshi.xyz
+APP_DOMAIN=yaoshitu.xyz
 YAOSHITU_DATA_KEY=独立生成的32位随机英文字母数字
 YAOSHITU_SETTINGS_KEY=另一个独立生成的32位随机英文字母数字
 ```
@@ -36,12 +40,12 @@ ssh -L 8090:127.0.0.1:8090 你的部署用户@服务器地址
 
 在 GitHub Developer settings → OAuth Apps 新建应用：
 
-- Homepage URL：`https://yaoshi.xyz`
-- Authorization callback URL：`https://yaoshi.xyz/api/oauth2-redirect`
+- Homepage URL：`https://yaoshitu.xyz`
+- Authorization callback URL：`https://yaoshitu.xyz/api/oauth2-redirect`
 
 在 PocketBase 的 `users` 集合 Options → OAuth2，只配置并启用 GitHub，填写 Client ID 和 Client Secret。Secret 仅存在服务器设置里，不进入前端。密码与 OTP 登录由迁移关闭，服务端钩子额外拒绝其他 OAuth 提供商。
 
-前端构建已通过 Compose 使用 `VITE_POCKETBASE_URL=https://yaoshi.xyz`。若修改域名，需要更新 GitHub 回调及重新构建前端。未配置服务地址的本地构建仅提供游客模式，不会自行联网。
+前端构建已通过 Compose 使用 `VITE_POCKETBASE_URL=https://yaoshitu.xyz`。若修改域名，需要更新 GitHub 回调及重新构建前端。未配置服务地址的本地构建仅提供游客模式，不会自行联网。
 
 ## 3. 备份和恢复
 
