@@ -58,7 +58,7 @@ ssh -L 8090:127.0.0.1:8090 你的部署用户@服务器地址
 - Homepage URL：`https://yaoshitu.xyz`
 - Authorization callback URL：`https://yaoshitu.xyz/api/oauth2-redirect`
 
-在 PocketBase 的 `users` 集合 Options → OAuth2，只配置并启用 GitHub，填写 Client ID 和 Client Secret。Secret 仅存在服务器设置里，不进入前端。密码与 OTP 登录由迁移关闭，服务端钩子额外拒绝其他 OAuth 提供商。
+在 PocketBase 的 `users` 集合 Options → OAuth2，只配置并启用 GitHub，填写 Client ID 和 Client Secret。Secret 仅存在服务器设置里，不进入前端。邮箱密码登录由新增迁移启用，OTP 保持关闭，服务端钩子额外拒绝其他 OAuth 提供商。
 
 前端构建已通过 Compose 使用 `VITE_POCKETBASE_URL=https://yaoshitu.xyz`。若修改域名，需要更新 GitHub 回调及重新构建前端。未配置服务地址的本地构建仅提供游客模式，不会自行联网。
 
@@ -116,3 +116,7 @@ node --test tests/merge.test.cjs
 完整集成测试仅允许本机临时服务。设置 `PB_TEST_ADMIN` 和 `PB_TEST_PASSWORD` 为临时超级用户凭据，从仓库根目录运行 `node server/tests/integration.mjs`。可选 `PB_TEST_DATA` 指向临时 `data.db`，会额外验证 SQLite 正文非明文并生成恢复演练快照和 `.tmp/recovery-manifest.json`。测试创建的账号最终会清理。
 
 恢复演练：将该快照解压到新的临时数据目录，以原数据密钥和相同 hooks 启动到 8100，再从根目录运行 `node server/tests/recovery.mjs`。本机开发未设置 settings 加密参数时只需数据密钥；生产 Compose 始终同时使用两个密钥。
+
+## 邮箱密码登录与 SMTP
+
+2026-10-24 新增邮箱密码注册、邮箱验证和找回密码；部署步骤见 [邮箱登录上线](../docs/email-auth-deployment.md)。GitHub 保留；邮箱用户必须验证后才能密码登录。

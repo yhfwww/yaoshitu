@@ -16,6 +16,11 @@ vi.mock("./client", () => ({
     realtime: { unsubscribe: vi.fn() },
     collection: () => ({
       authWithOAuth2: async () => { const record = { id: mock.nextUser, name: "测试账号" }; mock.auth.save("fake-token", record); return { record }; },
+      authWithPassword: async (_email: string, password: string) => {
+        if (password === "wrong") throw new Error("invalid credentials");
+        const record = { id: mock.nextUser, name: "邮箱账号" };
+        mock.auth.save("email-token", record); return { record };
+      },
       authRefresh: vi.fn(),
       subscribe: async () => vi.fn(),
     }),
@@ -38,10 +43,13 @@ it("登录/离线失败/重试/退出/换账号完整流程保持游客及账号
   await guestDb.tasks.clear(); await guestDb.notes.clear();
   await useStore.getState().reload();
   await useStore.getState().addTask({ title: "游客任务", urgency: 50, importance: 50, tags: [] });
-  const { loginGithub, logout, synchronize, useSync } = await import("./runtime");
+  const { loginGithub, loginEmail, logout, synchronize, useSync } = await import("./runtime");
   const names = new Set<string>();
   try {
     await loginGithub(); names.add(db.name);
+    await expect(loginEmail("test@example.invalid", "wrong")).rejects.toThrow("invalid credentials");
+    expect(mock.auth.record?.id).toBe("aaaaaaaaaaaaaaa");
+    expect(useSync.getState().account?.userId).toBe("aaaaaaaaaaaaaaa");
     expect(useStore.getState().tasks).toHaveLength(0);
     const task = await useStore.getState().addTask({ title: "账号 A", urgency: 10, importance: 90, tags: [] });
     mock.send.mockRejectedValueOnce(new Error("模拟断网"));
@@ -54,7 +62,7 @@ it("登录/离线失败/重试/退出/换账号完整流程保持游客及账号
     await logout();
     expect(useStore.getState().tasks[0].title).toBe("游客任务");
     documents.clear(); mock.nextUser = "bbbbbbbbbbbbbbb";
-    await loginGithub(); names.add(db.name);
+    await loginEmail("test@example.invalid", "valid-password"); names.add(db.name);
     expect(useStore.getState().tasks).toHaveLength(0);
     expect(await db.outbox.count()).toBe(0);
     const b = await useStore.getState().addTask({ title: "账号 B", urgency: 50, importance: 50, tags: [] });

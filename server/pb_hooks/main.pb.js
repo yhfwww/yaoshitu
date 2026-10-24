@@ -8,6 +8,13 @@ onRecordAuthWithOAuth2Request((e) => {
   e.next();
 }, "users");
 
+onRecordAuthWithPasswordRequest((e) => {
+  if (e.record && e.record.validatePassword(e.password) && !e.record.getBool("verified")) {
+    throw new ForbiddenError("请先验证邮箱，再登录");
+  }
+  e.next();
+}, "users");
+
 routerAdd("POST", "/api/yaoshitu/push", (e) => {
   const service = require(__hooks + "/service.cjs");
   const protocol = require(__hooks + "/merge.cjs");

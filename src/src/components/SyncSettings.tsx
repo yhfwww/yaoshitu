@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { EmailAuth } from "./EmailAuth";
 import { server } from "../lib/sync/client";
 import { deleteAccount, importGuest, loginGithub, logout, restoreConflict, synchronize, useSync } from "../lib/sync/runtime";
 
@@ -20,9 +21,10 @@ export function SyncSettings() {
   return <section aria-labelledby="sync-heading" style={{ marginTop: 20 }}>
     <h3 id="sync-heading" style={{ fontSize: 14 }}>账号与同步</h3>
     <p style={{ fontSize: 12, color: "var(--c-text-muted)" }}>
-      {sync.account ? `${sync.account.label} · ${sync.status} · 待同步 ${sync.pending} 项` : "游客模式，无需登录。登录 GitHub 后可在多设备同步。"}
+      {sync.account ? `${sync.account.label} · ${sync.status} · 待同步 ${sync.pending} 项` : "游客模式，无需登录。使用 GitHub 或邮箱登录后可在多设备同步。"}
     </p>
     {!server && <p style={{ fontSize: 12 }}>本站尚未开放云同步，你可以继续本地使用并导出备份。</p>}
+    {sync.account ? <details><summary>邮箱重新登录或切换账号</summary><EmailAuth /></details> : <EmailAuth />}
     {sync.lastSyncAt && <p style={{ fontSize: 12 }}>上次同步：{new Date(sync.lastSyncAt).toLocaleString()}</p>}
     <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
       {!sync.account ? <button className="btn btn-primary" disabled={disabled || !server} onClick={() => act(loginGithub)}>使用 GitHub 登录</button> : <>

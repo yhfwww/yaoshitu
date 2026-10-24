@@ -57,7 +57,7 @@ async function performSync() {
   try {
     // Never let a shared-browser auth change upload data into another account.
     if (pb.authStore.record?.id !== account.userId) throw new Error("账号已变更，请退出后重新登录；本地修改已保留");
-    if (!pb.authStore.isValid) throw new Error("登录已过期，请重新登录 GitHub。本地修改已保留。");
+    if (!pb.authStore.isValid) throw new Error("登录已过期，请重新登录。本地修改已保留。");
     if (isTokenExpired(pb.authStore.token, 300)) await pb.collection("users").authRefresh();
     if (pb.authStore.record?.id !== account.userId) throw new Error("账号不匹配");
     for (let i = 0; i < 200 && !stopped; i++) {
@@ -152,6 +152,36 @@ export async function loginGithub() {
     lifecycleBusy = false; stopped = false; useSync.setState({ busy: false });
   }
   await synchronize();
+}
+
+export async function loginEmail(email: string, password: string) {
+  if (lifecycleBusy) throw new Error("账号操作正在进行，请稍后重试");
+  const pb = getClient();
+  const previousToken = pb.authStore.token;
+  const previousRecord = pb.authStore.record;
+  lifecycleBusy = true;
+  useSync.setState({ busy: true, error: "" });
+  try {
+    stopped = true;
+    await running;
+    const auth = await pb.collection("users").authWithPassword(email.trim(), password);
+    await switchSpace({ userId: auth.record.id, label: auth.record.name || auth.record.email || "邮箱用户", server });
+    await subscribe();
+  } catch (error) {
+    if (previousRecord) pb.authStore.save(previousToken, previousRecord);
+    else pb.authStore.clear();
+    throw error;
+  } finally {
+    lifecycleBusy = false; stopped = false; useSync.setState({ busy: false });
+  }
+  await synchronize();
+}
+
+export async function registerEmail(email: string, password: string, passwordConfirm: string) {
+  const users = getClient().collection("users");
+  await users.create({ email: email.trim(), password, passwordConfirm });
+  try { await users.requestVerification(email.trim()); }
+  catch { throw new Error("账号已创建，但验证邮件发送失败。请稍后点击重新发送验证邮件。"); }
 }
 
 export async function logout() {
