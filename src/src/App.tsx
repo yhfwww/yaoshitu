@@ -14,7 +14,6 @@ import { ArchiveView } from "./views/ArchiveView";
 import type { ViewId } from "./db/schema";
 import { bootSync, useSync } from "./lib/sync/runtime";
 import { AccountDialog } from "./components/AccountDialog";
-import { EmailAction } from "./components/EmailAction";
 
 const VIEW_COMPONENTS: Record<ViewId, ComponentType> = {
   coordinate: CoordinateView,
@@ -46,10 +45,6 @@ export default function App() {
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [accountOpen, setAccountOpen] = useState(false);
   const account = useSync((s) => s.account);
-  const [emailAction, setEmailAction] = useState(() => {
-    const match = location.hash.match(/^#(verify|reset)\/([^/]+)$/);
-    return match ? { action: match[1] as "verify" | "reset", token: match[2] } : null;
-  });
 
   useEffect(() => {
     void init().then(bootSync);
@@ -109,7 +104,6 @@ export default function App() {
       <TaskEditor />
       {settingsOpen && <SettingsDialog onClose={() => setSettingsOpen(false)} />}
       {accountOpen && <AccountDialog onClose={() => setAccountOpen(false)} />}
-      {emailAction && <EmailAction {...emailAction} onClose={() => { history.replaceState(null, "", location.pathname + location.search); setEmailAction(null); setAccountOpen(true); }} />}
     </div>
   );
 }

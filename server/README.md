@@ -119,4 +119,4 @@ node --test tests/merge.test.cjs
 
 ## 邮箱密码登录与 SMTP
 
-2026-10-24 新增邮箱密码注册、邮箱验证和找回密码；部署步骤见 [邮箱登录上线](../docs/email-auth-deployment.md)。GitHub 保留；邮箱用户必须验证后才能密码登录。
+2026-10-24 新增邮箱密码直接注册登录，验证和找回密码后置；部署步骤见 [邮箱登录上线](../docs/email-auth-deployment.md)。GitHub 保留；邮箱用户注册后即可密码登录，无需 SMTP。

@@ -170,7 +170,7 @@ yaoshitu/
 - 依赖 `dependencies`
 - 提醒 `reminderAt`
 
-**v0.2（实施中）**：本地游客 + GitHub / 邮箱密码登录（含验证和找回密码，首页提供入口）、账号空间隔离、PocketBase 字段同步、删除防复活、完整备份、静态加密与 Ubuntu 部署配置。本机协议验证及快照恢复演练已通过；真实 GitHub 回调、两设备离线验收、Ubuntu 容器运行与异地备份配置待部署。独立同步历史视图、插件仍未开始。
+**v0.2（实施中）**：本地游客 + GitHub / 邮箱密码登录（无需邮箱验证，首页提供入口）、账号空间隔离、PocketBase 字段同步、删除防复活、完整备份、静态加密与 Ubuntu 部署配置。本机协议验证及快照恢复演练已通过；真实 GitHub 回调、两设备离线验收、Ubuntu 容器运行与异地备份配置待部署。独立同步历史视图、插件仍未开始。
 
 **自动化测试**：`npm test` 覆盖坐标、日期、视图、完整备份校验、store CRUD、回收站、本地事务与账号隔离、模拟断网重试。服务端纯协议测试：`node --test server/tests/merge.test.cjs`。真实临时 PocketBase 集成与恢复演练见 [部署说明](server/README.md)。
 

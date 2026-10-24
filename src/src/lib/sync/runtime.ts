@@ -180,8 +180,6 @@ export async function loginEmail(email: string, password: string) {
 export async function registerEmail(email: string, password: string, passwordConfirm: string) {
   const users = getClient().collection("users");
   await users.create({ email: email.trim(), password, passwordConfirm });
-  try { await users.requestVerification(email.trim()); }
-  catch { throw new Error("账号已创建，但验证邮件发送失败。请稍后点击重新发送验证邮件。"); }
 }
 
 export async function logout() {
