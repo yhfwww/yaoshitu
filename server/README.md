@@ -26,7 +26,22 @@ docker compose up -d --build
 
 首次初始化通过下一节的本地管理界面创建超级用户。这是后台管理员凭据，不是用户邮箱登录入口。
 
+### 构建报错：缺少 Buildx，PocketBase 下载 404
+
+`TARGETARCH` 的自动值由 BuildKit 提供。没有 Buildx 而回退到旧构建器时，旧版 v0.2.0-dev 标签的该参数会为空，下载 URL 变成 `linux_.zip`。当前 Dockerfile 已增加容器架构检测，支持 amd64/arm64，并拒绝不支持的架构。
+
+若服务器已固定在旧标签、且确认 `uname -m` 为 `x86_64`，可在 `server/` 下暂时修正为：
+
+```sh
+sed -i 's/^ARG TARGETARCH$/ARG TARGETARCH=amd64/' Dockerfile
+docker compose up -d --build
+```
+
+此方式无需替换现有 Docker 引擎，不修改 `.env`、密钥或数据卷。后续安装 Buildx 应匹配现有 Docker 软件包来源，不应为此直接卸载已有引擎。
+
 ## 2. 配置 GitHub OAuth
+
+若宿主机已有 Nginx 并占用 80 端口，采用下文的现有 Nginx 分支；不运行 Compose 的 `web` 服务。独立 Caddy 分支与 Nginx 分支二选一。
 
 通过 SSH 建立管理隧道：
 
@@ -63,6 +78,31 @@ ssh -L 8090:127.0.0.1:8090 你的部署用户@服务器地址
 4. 断网修改、刷新、联网后补传；退出 A 再进入 B 不出现 A 的数据。
 5. 回收站恢复、永久删除防复活、JSON 恢复、服务端快照恢复都通过。
 6. 验证 HTTPS、SSE、后台私有访问和异地备份。
+
+## 现有 Nginx 分支（2026-10-23）
+
+已确认的服务器有默认站点监听 80、旧版要事图监听 5000。保留二者，新增 `yaoshitu.xyz` 域名站点，由宿主机 Nginx 提供静态网页并代理 PocketBase。此分支不再启动 Caddy 网页容器；后续不要直接运行无服务名的 `docker compose up -d`，以免再次尝试绑定 80/443。
+
+前提：两个镜像已构建，`server-web-1` 处于 Created 状态，PocketBase 健康检查返回 200。从现有网页容器导出静态产物（Docker 支持从未运行的容器复制文件）：
+
+```sh
+mkdir -p /var/www/yaoshitu-v0.2.0-dev
+docker cp server-web-1:/srv/. /var/www/yaoshitu-v0.2.0-dev/
+chmod -R a+rX /var/www/yaoshitu-v0.2.0-dev
+```
+
+将本目录 `nginx-site.conf` 安装为 `/etc/nginx/sites-available/yaoshitu-domain`，软链接到 `/etc/nginx/sites-enabled/yaoshitu-domain`。先执行 `nginx -t`，仅在校验通过后 reload。该配置保持 `/api/` 路径不变、关闭 SSE 缓冲与 API 缓存，并屏蔽公开管理网页；后台仍通过 SSH 隧道访问。
+
+通过本机 Host 请求确认站点：
+
+```sh
+curl -I -H 'Host: yaoshitu.xyz' http://127.0.0.1/
+curl -sS -H 'Host: yaoshitu.xyz' http://127.0.0.1/api/health
+```
+
+HTTP 验证通过后，给域名站点配置受信任 HTTPS 证书及自动续期，再进行 GitHub 登录；不能把 HTTP 页面可见等同于部署完成。证书签发步骤以 Certbot Nginx 官方文档及实际安装方式为准。旧版 5000 端口和目录保持原样；如有本地任务，先从旧访问地址导出 JSON，再到新域名导入。
+
+后续更新只重建前端镜像、导出新静态产物，再校验/切换 Nginx 站点；PocketBase 用 `docker compose up -d pocketbase` 单独管理，禁止删除 `pb_data` 数据卷或重新生成数据密钥。首次改成 Nginx 分支无需重建镜像、无需更换数据库。
 
 ## 本机开发和测试
 

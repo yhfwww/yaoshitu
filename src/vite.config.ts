@@ -40,6 +40,8 @@ export default defineConfig({
         // 无路由的 SPA：离线刷新时必须由缓存回退到 index.html，
         // 否则 precache 里只存了 index.html，导航到 ./ 匹配不上。
         navigateFallback: "index.html",
+        // OAuth 回调必须到达服务器，不能被离线应用首页替换。
+        navigateFallbackDenylist: [/^\/api(?:\/|\?|$)/, /^\/_(?:\/|\?|$)/],
         cleanupOutdatedCaches: true,
         clientsClaim: true,
       },
