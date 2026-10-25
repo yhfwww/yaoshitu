@@ -137,7 +137,16 @@ export async function loginGithub() {
     stopped = true;
     await running;
     const auth = await Promise.race([
-      pb.collection("users").authWithOAuth2({ provider: "github", urlCallback: (url) => { popup.location.href = url; } }),
+      pb.collection("users").authWithOAuth2({
+        provider: "github",
+        // 登录/切换账号不是绑定：禁止 SDK 自动携带当前邮箱账号的 token。
+        headers: { Authorization: "" },
+        urlCallback: (url) => {
+          const authorize = new URL(url);
+          authorize.searchParams.set("prompt", "select_account");
+          popup.location.href = authorize.href;
+        },
+      }),
       new Promise<never>((_, reject) => { timeout = setTimeout(() => { void pb.realtime.unsubscribe(); reject(new Error("登录超时")); }, 120000); }),
     ]);
     await switchSpace({ userId: auth.record.id, label: auth.record.name || auth.record.email || "GitHub 用户", server });

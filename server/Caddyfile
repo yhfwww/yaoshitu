@@ -3,6 +3,11 @@
   handle /api/* {
     reverse_proxy pocketbase:8090
   }
+  handle /_/ {
+    header Content-Type "text/html; charset=utf-8"
+    header Cache-Control "no-store"
+    respond "<!doctype html><html lang=zh-CN><meta charset=utf-8><title>要事图登录</title><body><p>授权回调已返回，请回到原来的要事图页面查看登录结果。此窗口可以关闭。</p></body></html>" 200
+  }
   handle /_/* {
     respond "Use the private administration tunnel" 404
   }

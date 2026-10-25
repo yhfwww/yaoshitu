@@ -15,7 +15,16 @@ vi.mock("./client", () => ({
     send: mock.send,
     realtime: { unsubscribe: vi.fn() },
     collection: () => ({
-      authWithOAuth2: async () => { const record = { id: mock.nextUser, name: "测试账号" }; mock.auth.save("fake-token", record); return { record }; },
+      authWithOAuth2: async (options: { headers: Record<string, string>; urlCallback: (url: string) => void }) => {
+        expect(options.headers.Authorization).toBe("");
+        options.urlCallback("https://github.com/login/oauth/authorize?state=keep-state&code_challenge=keep-pkce");
+        const popup = vi.mocked(window.open).mock.results.at(-1)!.value as Window;
+        const authorize = new URL(popup.location.href);
+        expect(authorize.searchParams.get("prompt")).toBe("select_account");
+        expect(authorize.searchParams.get("state")).toBe("keep-state");
+        expect(authorize.searchParams.get("code_challenge")).toBe("keep-pkce");
+        const record = { id: mock.nextUser, name: "测试账号" }; mock.auth.save("fake-token", record); return { record };
+      },
       authWithPassword: async (_email: string, password: string) => {
         if (password === "wrong") throw new Error("invalid credentials");
         const record = { id: mock.nextUser, name: "邮箱账号" };
@@ -50,6 +59,7 @@ it("登录/离线失败/重试/退出/换账号完整流程保持游客及账号
     await expect(loginEmail("test@example.invalid", "wrong")).rejects.toThrow("invalid credentials");
     expect(mock.auth.record?.id).toBe("aaaaaaaaaaaaaaa");
     expect(useSync.getState().account?.userId).toBe("aaaaaaaaaaaaaaa");
+    await loginGithub();
     expect(useStore.getState().tasks).toHaveLength(0);
     const task = await useStore.getState().addTask({ title: "账号 A", urgency: 10, importance: 90, tags: [] });
     mock.send.mockRejectedValueOnce(new Error("模拟断网"));

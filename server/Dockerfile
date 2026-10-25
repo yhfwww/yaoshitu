@@ -21,6 +21,8 @@ RUN apk add --no-cache ca-certificates \
 COPY --from=download /tmp/pb/pocketbase /usr/local/bin/pocketbase
 COPY pb_hooks /pb/pb_hooks
 COPY pb_migrations /pb/pb_migrations
+RUN find /pb/pb_hooks /pb/pb_migrations -type d -exec chmod 755 {} \; \
+    && find /pb/pb_hooks /pb/pb_migrations -type f -exec chmod 644 {} \;
 USER yaoshitu
 WORKDIR /pb
 EXPOSE 8090
