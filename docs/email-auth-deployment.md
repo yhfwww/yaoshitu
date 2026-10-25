@@ -398,3 +398,32 @@ PocketBase 0.40.5 会把已处理的 OAuth 回调跳转到 `/_/` 下带 hash 的
 ### 点击 GitHub 登录却进入之前的邮箱账号
 
 GitHub 登录请求必须显式设置空 Authorization，避免 PocketBase 将旧邮箱会话作为绑定目标；新版已增加此设置，并在 GitHub 授权 URL 中添加 prompt=select_account。该修改只需升级前端。不会自动解除之前已生成的 GitHub 关联；如果升级后仍返回同一用户，应在 PocketBase 后台查看该用户的外部认证关联，以及 GitHub 返回的邮箱是否与账号相同。相同邮箱的自动匹配仍属于 PocketBase 默认行为，不能仅凭界面显示邮箱判断实际登录方式。不要未经核对删除账号或关联，以免失去数据入口。
+
+## 十二、重新核对 GitHub OAuth 设置与账号匹配（PocketBase 0.40.5）
+
+依据运行版本源码： https://github.com/pocketbase/pocketbase/blob/v0.40.5/apis/record_auth_with_oauth2.go 。GitHub 回调 success 只确认授权码已传给浏览器实时连接，不证明后续用户登录成功。最终以主页面 auth-with-oauth2 请求成功响应为准。
+
+### 1. GitHub 应用
+
+进入 https://github.com/settings/applications/3957961 ，保留现有 OAuth App，不重建、不撤销 Client Secret。Homepage URL 为 https://yaoshitu.xyz；Redirect URI（有的界面称 Authorization callback URL）为 https://yaoshitu.xyz/api/oauth2-redirect 。保存后，核对 Client ID 与 PocketBase 配置来自同一应用。Client Secret 保持已保存值，空白/掩码不代表没有配置，不要把掩码当密码再次保存。
+
+### 2. PocketBase
+
+通过 Windows SSH 隧道打开 http://127.0.0.1:18090/_/ 。进入业务 users 集合，而非 _superusers；Options 的 OAuth2 开启，只启用 GitHub。Client ID、Client Secret 来自上述同一 GitHub OAuth App；其他 GitHub 端点、scope、PKCE 选项保持内置默认，不手工改为本机回调。Password auth 继续开启（identity field=email），OTP 和 MFA 保持关闭，Auth rule 不应要求 verified=true；API Rules 不在本次核对中改动。Settings 中 Application URL 使用 https://yaoshitu.xyz 。管理员账号不支持 GitHub OAuth，需继续用管理员邮箱密码进入管理后台。
+
+### 3. PocketBase 的匹配顺序
+
+1. 若当前 GitHub 用户 ID 已有 _externalAuths 关联，直接返回该关联的 users 记录。
+2. 没有关联但请求携带了当前 users 身份，可能回退到该用户。587cc39 已在 GitHub 登录请求显式清空 Authorization，防止无意绑定当前会话。
+3. 没有关联和当前身份时，按 GitHub 返回的邮箱查找现有用户；邮箱相同也可能进入原邮箱账号。
+4. 都不存在时，才创建新用户并建立 GitHub 关联。
+
+所以用户邮箱不变、新增用户数为零，本身不证明用了密码认证。重新填写 OAuth App 不会清除数据库里已经存在的关联。也不能通过删除关联解决同邮箱自动匹配：下一次可能再次匹配。
+
+### 4. 用证据判断本次认证方式
+
+在无痕窗口打开正式站点，F12 → Network → 保留日志，点击 GitHub 登录并选择目标 GitHub 用户。回主页面查看 auth-with-oauth2 请求：成功 200，Payload 的 provider=github，Response 的 record.id 与 users 对应用户 ID 一致，说明确实使用 GitHub 登录该用户。auth-with-password 才是密码登录。不要分享整个 Payload/Response，里面含授权码、PKCE verifier、OAuth token 或登录 token；只记录接口名称、状态码、用户 ID 和是否同邮箱即可。
+
+如需查旧关联，在后台查看用户的外部认证关联，或若界面支持显示系统集合，查看 _externalAuths 的 provider、providerId、recordRef；只读查看，不删除。若入口找不到，应根据实际界面定位，不使用已废弃的 /records/{id}/external-auths API。
+
+如果不同 GitHub 账号始终进入同一 users 记录，比较 GitHub 用户与关联 providerId、recordRef，再决定迁移；已有任务按 users ID 归属，禁止通过删用户或清空数据库来试错。当前界面只显示 name/email，不显示本次认证方式，显示邮箱不能作为密码登录的证据。
