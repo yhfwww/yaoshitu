@@ -18,7 +18,10 @@ export type IconName =
   | "clock"
   | "edit"
   | "more"
-  | "settings";
+  | "settings"
+  | "info"
+  | "mail"
+  | "copy";
 
 const PATHS: Record<IconName, React.ReactNode> = {
   axis: (
@@ -133,6 +136,25 @@ const PATHS: Record<IconName, React.ReactNode> = {
       <circle cx="5" cy="8" r="1.5" fill="var(--c-white)" />
       <line x1="2" y1="12" x2="14" y2="12" />
       <circle cx="11" cy="12" r="1.5" fill="var(--c-white)" />
+    </>
+  ),
+  info: (
+    <>
+      <circle cx="8" cy="8" r="6.5" />
+      <line x1="8" y1="7" x2="8" y2="11.5" />
+      <circle cx="8" cy="4.7" r="0.75" fill="currentColor" stroke="none" />
+    </>
+  ),
+  mail: (
+    <>
+      <rect x="2" y="3.5" width="12" height="9" rx="1.5" />
+      <path d="M2.8 4.4 L8 8.5 L13.2 4.4" />
+    </>
+  ),
+  copy: (
+    <>
+      <rect x="5" y="2" width="8" height="10" rx="1.2" />
+      <path d="M3 5 V13 A1 1 0 0 0 4 14 H10" />
     </>
   ),
 };

@@ -162,3 +162,64 @@ a {
 ::-webkit-scrollbar-track {
   background: transparent;
 }
+
+/* 帮助与 About：应用内、可离线使用的全屏辅助页 */
+.aux-page {
+  position: fixed;
+  z-index: 30;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  background: var(--c-bg);
+}
+.aux-page-header {
+  min-height: 64px;
+  padding: 12px clamp(16px, 4vw, 56px);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 16px;
+  border-bottom: 1px solid var(--c-border);
+  background: var(--c-card);
+}
+.aux-page-brand { display: flex; align-items: center; gap: 10px; }
+.aux-page-title { font-size: 16px; font-weight: 650; color: var(--c-primary-dark); }
+.aux-page-description { font-size: 12px; color: var(--c-text-muted); }
+.docs-layout { flex: 1; min-height: 0; display: grid; grid-template-columns: minmax(188px, 248px) minmax(0, 760px); justify-content: center; overflow: hidden; }
+.docs-toc { padding: 28px 16px; border-right: 1px solid var(--c-border); overflow-y: auto; }
+.docs-toc-title { margin: 0 10px 8px; font-size: 12px; font-weight: 650; color: var(--c-text-muted); }
+.docs-toc button { width: 100%; display: flex; gap: 9px; padding: 7px 10px; border-radius: 6px; text-align: left; color: var(--c-text); }
+.docs-toc button:hover { background: var(--c-hover); }
+.docs-toc button span, .docs-section-index { color: var(--c-primary-dark); font-family: var(--font-mono); font-size: 11px; }
+.docs-content { overflow-y: auto; scroll-behavior: smooth; padding: 42px clamp(24px, 5vw, 64px) 64px; }
+.docs-lede { padding: 20px 22px; margin-bottom: 38px; border-left: 3px solid var(--c-primary); border-radius: 0 var(--radius) var(--radius) 0; background: var(--c-primary-soft); }
+.docs-lede p { margin: 0; }
+.docs-lede p + p { margin-top: 8px; color: var(--c-text-muted); font-size: 13px; }
+.docs-section { display: grid; grid-template-columns: 30px minmax(0, 1fr); gap: 10px; padding: 0 0 36px; scroll-margin-top: 24px; }
+.docs-section h2 { margin: -5px 0 8px; font-size: 20px; color: var(--c-primary-dark); }
+.docs-section p { margin: 0; color: var(--c-text-muted); }
+.docs-section ul { margin: 13px 0 0; padding-left: 20px; }
+.docs-section li + li { margin-top: 7px; }
+.about-content { width: min(680px, 100%); margin: 0 auto; padding: clamp(32px, 7vw, 72px) 24px 64px; overflow-y: auto; }
+.about-hero { display: flex; align-items: center; gap: 18px; padding-bottom: 32px; border-bottom: 1px solid var(--c-border); }
+.about-hero h1 { margin: 0; font-size: clamp(24px, 4vw, 32px); color: var(--c-primary-dark); }
+.about-hero p { margin: 4px 0 0; color: var(--c-text-muted); }
+.about-section { padding: 28px 0; border-bottom: 1px solid var(--c-border); }
+.about-section h2 { margin: 0 0 10px; font-size: 17px; color: var(--c-primary-dark); }
+.about-section p { margin: 8px 0; }
+.about-contact { margin: 14px 0; }
+.about-contact div { display: grid; grid-template-columns: 64px 1fr; gap: 12px; padding: 5px 0; }
+.about-contact dt { color: var(--c-text-muted); }
+.about-contact dd { margin: 0; font-family: var(--font-mono); font-size: 13px; }
+.about-actions { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 18px; }
+.about-version { padding-top: 18px; color: var(--c-text-muted); font-family: var(--font-mono); font-size: 12px; }
+
+@media (max-width: 680px) {
+  .aux-page-header { align-items: flex-start; }
+  .aux-page-description { display: none; }
+  .docs-layout { display: block; overflow-y: auto; }
+  .docs-toc { position: sticky; top: 0; z-index: 1; display: flex; gap: 2px; padding: 8px 12px; overflow-x: auto; border-right: 0; border-bottom: 1px solid var(--c-border); background: var(--c-card); }
+  .docs-toc-title { display: none; }
+  .docs-toc button { width: auto; white-space: nowrap; font-size: 12px; }
+  .docs-content { overflow: visible; padding: 28px 20px 48px; }
+}

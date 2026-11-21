@@ -5,7 +5,15 @@ import { Icon } from "./Icon";
 import { daysAgo } from "../lib/datetime";
 import { useSync } from "../lib/sync/runtime";
 
-export function Sidebar({ onOpenSettings }: { onOpenSettings: () => void }) {
+export function Sidebar({
+  onOpenSettings,
+  onOpenDocs,
+  onOpenAbout,
+}: {
+  onOpenSettings: () => void;
+  onOpenDocs: () => void;
+  onOpenAbout: () => void;
+}) {
   const view = useStore((s) => s.view);
   const setView = useStore((s) => s.setView);
   const smartView = useStore((s) => s.smartView);
@@ -113,32 +121,42 @@ export function Sidebar({ onOpenSettings }: { onOpenSettings: () => void }) {
         ))}
       </nav>
 
-      {/* 底部：备份提醒 + 设置 */}
+      {/* 底部：状态 + 帮助入口 */}
       <div
         style={{
           padding: "10px 12px",
           borderTop: "1px solid var(--c-border)",
           fontSize: 11,
           color: "var(--c-text-muted)",
-          display: "flex",
-          alignItems: "center",
-          gap: 8,
         }}
       >
-        <div style={{ flex: 1 }}>
+        <div>
           <div role="status" style={{ marginBottom: 4 }}>{account ? `${syncStatus}${pending ? ` · 待同步 ${pending} 项` : ""}` : "游客 · 本地模式"}</div>
           {lastBackupAt
             ? `上次备份 ${daysAgo(lastBackupAt)} 天前`
             : "尚未备份（设置页可导出）"}
         </div>
-        <button
-          className="btn-ghost"
-          onClick={onOpenSettings}
-          aria-label="设置"
-          style={{ padding: 4 }}
-        >
-          <Icon name="settings" size={16} />
-        </button>
+        <div style={{ display: "flex", gap: 2, marginTop: 8 }}>
+          <button
+            className="btn-ghost"
+            onClick={onOpenDocs}
+            style={{ display: "inline-flex", alignItems: "center", gap: 4, padding: "4px 6px" }}
+          >
+            <Icon name="book" size={15} />
+            帮助
+          </button>
+          <button
+            className="btn-ghost"
+            onClick={onOpenAbout}
+            style={{ display: "inline-flex", alignItems: "center", gap: 4, padding: "4px 6px" }}
+          >
+            <Icon name="info" size={15} />
+            关于
+          </button>
+          <button className="btn-ghost" onClick={onOpenSettings} aria-label="设置" style={{ padding: 4, marginLeft: "auto" }}>
+            <Icon name="settings" size={16} />
+          </button>
+        </div>
       </div>
     </aside>
   );

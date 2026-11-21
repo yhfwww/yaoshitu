@@ -14,6 +14,8 @@ import { ArchiveView } from "./views/ArchiveView";
 import type { ViewId } from "./db/schema";
 import { bootSync, useSync } from "./lib/sync/runtime";
 import { AccountDialog } from "./components/AccountDialog";
+import { HelpDocsPage } from "./components/HelpDocsPage";
+import { AboutPage } from "./components/AboutPage";
 
 const VIEW_COMPONENTS: Record<ViewId, ComponentType> = {
   coordinate: CoordinateView,
@@ -44,6 +46,7 @@ export default function App() {
   const openEditor = useStore((s) => s.openEditor);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [accountOpen, setAccountOpen] = useState(false);
+  const [auxiliaryPage, setAuxiliaryPage] = useState<"docs" | "about" | null>(null);
   const account = useSync((s) => s.account);
 
   useEffect(() => {
@@ -64,13 +67,15 @@ export default function App() {
       } else if (e.key === "/") {
         e.preventDefault();
         setCommandOpen(true);
+      } else if (e.key === "Escape" && auxiliaryPage) {
+        setAuxiliaryPage(null);
       } else if (e.key === "Escape") {
         useStore.getState().selectTask(null);
       }
     }
     window.addEventListener("keydown", onKeyDown);
     return () => window.removeEventListener("keydown", onKeyDown);
-  }, [setCommandOpen, openEditor]);
+  }, [setCommandOpen, openEditor, auxiliaryPage]);
 
   if (!ready) {
     return (
@@ -92,7 +97,11 @@ export default function App() {
 
   return (
     <div style={{ height: "100%", display: "flex" }}>
-      <Sidebar onOpenSettings={() => setSettingsOpen(true)} />
+      <Sidebar
+        onOpenSettings={() => setSettingsOpen(true)}
+        onOpenDocs={() => setAuxiliaryPage("docs")}
+        onOpenAbout={() => setAuxiliaryPage("about")}
+      />
       <main style={{ flex: 1, minWidth: 0, height: "100%", display: "flex", flexDirection: "column" }}>
         <div style={{ display: "flex", alignItems: "center", justifyContent: "flex-end", gap: 12, padding: "8px 16px", borderBottom: "1px solid var(--c-border)", flexWrap: "wrap" }}>
           <span style={{ fontSize: 12, color: "var(--c-text-muted)" }}>{account ? "账号空间" : "游客模式 · 登录后跨设备同步"}</span>
@@ -102,8 +111,10 @@ export default function App() {
       </main>
       <CommandPalette />
       <TaskEditor />
-      {settingsOpen && <SettingsDialog onClose={() => setSettingsOpen(false)} />}
+      {settingsOpen && <SettingsDialog onClose={() => setSettingsOpen(false)} onOpenAbout={() => { setSettingsOpen(false); setAuxiliaryPage("about"); }} />}
       {accountOpen && <AccountDialog onClose={() => setAccountOpen(false)} />}
+      {auxiliaryPage === "docs" && <HelpDocsPage onClose={() => setAuxiliaryPage(null)} />}
+      {auxiliaryPage === "about" && <AboutPage onClose={() => setAuxiliaryPage(null)} />}
     </div>
   );
 }

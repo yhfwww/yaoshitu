@@ -9,7 +9,7 @@ import { Icon } from "./Icon";
 import { SyncSettings } from "./SyncSettings";
 import { useSync } from "../lib/sync/runtime";
 
-export function SettingsDialog({ onClose }: { onClose: () => void }) {
+export function SettingsDialog({ onClose, onOpenAbout }: { onClose: () => void; onOpenAbout: () => void }) {
   const settings = useStore((s) => s.settings);
   const updateSettings = useStore((s) => s.updateSettings);
   const exportBackup = useStore((s) => s.exportBackup);
@@ -153,8 +153,11 @@ export function SettingsDialog({ onClose }: { onClose: () => void }) {
               要事图 / Yaoshitu
             </div>
             <div style={{ fontSize: 12, color: "var(--c-text-muted)" }}>
-              要事一图，轻重自现。 · v0.2.0-dev · 本地优先 · 开源（MIT）
+              要事一图，轻重自现。 · v0.2.0-dev · 本地优先
             </div>
+            <button className="btn-ghost" onClick={onOpenAbout} style={{ padding: "3px 0", marginTop: 4, fontSize: 12, color: "var(--c-primary-dark)" }}>
+              查看完整 About
+            </button>
           </div>
         </div>
 
