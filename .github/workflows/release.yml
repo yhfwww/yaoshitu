@@ -65,7 +65,11 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          port="${DEPLOY_SSH_PORT:-22}"
+          # Environment Secret 有时会被网页输入框带入不可见的换行；这些字段
+          # 本身不允许空白，先规范化后再做严格校验。
+          deploy_host="$(printf '%s' "$DEPLOY_HOST" | tr -d '[:space:]')"
+          deploy_user="$(printf '%s' "$DEPLOY_USER" | tr -d '[:space:]')"
+          port="$(printf '%s' "${DEPLOY_SSH_PORT:-22}" | tr -d '[:space:]')"
           case "$port" in
             *[!0-9]* | '') echo "DEPLOY_SSH_PORT 必须为 1 到 65535 的纯数字" >&2; exit 2;;
           esac
@@ -73,14 +77,14 @@ jobs:
             echo "DEPLOY_SSH_PORT 必须为 1 到 65535 的纯数字" >&2
             exit 2
           fi
-          case "$DEPLOY_HOST" in *[[:space:]]* | '') echo "DEPLOY_HOST 不能含空白字符" >&2; exit 2;; esac
-          case "$DEPLOY_USER" in *[[:space:]]* | '') echo "DEPLOY_USER 不能含空白字符" >&2; exit 2;; esac
+          case "$deploy_host" in '') echo "DEPLOY_HOST 不能为空" >&2; exit 2;; esac
+          case "$deploy_user" in '') echo "DEPLOY_USER 不能为空" >&2; exit 2;; esac
           # 使用固定别名发起连接，不让 Secret 参与 ssh 命令行参数解析。
           ssh_config="$RUNNER_TEMP/yaoshitu_ssh_config"
           {
             printf '%s\n' 'Host yaoshitu-production'
-            printf '  HostName %s\n' "$DEPLOY_HOST"
-            printf '  User %s\n' "$DEPLOY_USER"
+            printf '  HostName %s\n' "$deploy_host"
+            printf '  User %s\n' "$deploy_user"
             printf '  Port %s\n' "$port"
             printf '%s\n' '  IdentityFile ~/.ssh/yaoshitu_deploy'
             printf '%s\n' '  IdentitiesOnly yes'
