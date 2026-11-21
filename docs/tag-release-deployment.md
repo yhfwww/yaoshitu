@@ -177,7 +177,7 @@ git tag -a v0.2.1 -m "v0.2.1"
 git push origin v0.2.1
 ```
 
-工作流在服务器为 Tag 创建独立 Git worktree、构建前端和 PocketBase 镜像、先探测新 PocketBase 健康状态，最后原子替换静态前端软链接。任一步失败时脚本会恢复前一个静态链接和之前运行的 PocketBase 镜像。
+工作流在服务器为 Tag 创建独立 Git worktree、构建前端和 PocketBase 镜像、先探测新 PocketBase 健康状态，最后原子替换静态前端软链接，并以本机 HTTPS 请求确认 Nginx 能读取新静态目录。任一步失败时脚本会恢复前一个静态链接和之前运行的 PocketBase 镜像。
 
 PocketBase 数据库迁移可能不可逆：自动回滚优先恢复可运行的应用镜像，不能承诺任意破坏性 schema 迁移都能无损降级。发布涉及删除/改名字段时，应先做数据库快照并执行恢复演练。
 

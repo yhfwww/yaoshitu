@@ -67,6 +67,8 @@ stage="$(mktemp -d "$STATIC_ROOT/.${TAG}.XXXXXX")"
 trap 'rm -rf "$stage"' EXIT
 docker cp "$web_container:/srv/." "$stage/"
 docker rm "$web_container" >/dev/null
+# mktemp 目录默认是 0700；Nginx 用户必须能遍历发布目录并读取静态文件。
+chmod -R a+rX "$stage"
 mv "$stage" "$new_static"
 trap - EXIT
 
@@ -80,5 +82,8 @@ curl --fail --silent --show-error --max-time 5 http://127.0.0.1:8090/api/health 
 # 软链接改名为同文件系统内原子操作；已有连接仍可读取旧静态文件。
 ln -sfn "$new_static" "$CURRENT_LINK.next"
 mv -Tf "$CURRENT_LINK.next" "$CURRENT_LINK"
+# 发布成功必须包含静态站点可读性；若 Nginx 无法读取新目录，ERR trap 会恢复旧链接。
+curl --noproxy '*' --resolve "$APP_DOMAIN:443:127.0.0.1" \
+  --fail --silent --show-error --max-time 5 -I "https://$APP_DOMAIN/" >/dev/null
 printf '%s\n' "$TAG" > "$STATE_DIR/current-tag"
 printf '发布成功：%s\n' "$TAG"
