@@ -120,3 +120,7 @@ node --test tests/merge.test.cjs
 ## 邮箱密码登录与 SMTP
 
 2026-10-24 新增邮箱密码直接注册登录，验证和找回密码后置；部署步骤见 [邮箱登录上线](../docs/email-auth-deployment.md)。GitHub 保留；邮箱用户注册后即可密码登录，无需 SMTP。
+
+## 自动发布
+
+通过 Git Tag 自动验证、部署与失败回滚的配置见 [Tag 自动发布与回滚](../docs/tag-release-deployment.md)。当前生产环境使用宿主机 Nginx 时，按该文档将静态根目录切到稳定软链接；不要启动 Compose 的 `web` 服务抢占 80/443。

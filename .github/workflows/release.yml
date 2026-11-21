@@ -1,0 +1,92 @@
+name: Release deployment
+
+on:
+  push:
+    tags: ["v*"]
+
+permissions:
+  contents: read
+
+# 生产环境的发布绝不能相互取消或并行执行。
+concurrency:
+  group: production-deploy
+  cancel-in-progress: false
+
+jobs:
+  verify:
+    name: release verification
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    defaults:
+      run:
+        working-directory: src
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 1
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: src/package-lock.json
+      - run: npm ci
+      - run: npm run typecheck
+      - run: npm test
+      - run: node --test ../server/tests/merge.test.cjs
+      # 与生产一致地注入同步服务地址，确认 Tag 产物不是“仅本地模式”。
+      - run: npm run build
+        env:
+          VITE_POCKETBASE_URL: https://yaoshitu.xyz
+
+  deploy:
+    name: deploy production
+    needs: verify
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    environment: production
+    env:
+      DEPLOY_HOST: ${{ secrets.DEPLOY_HOST }}
+      DEPLOY_USER: ${{ secrets.DEPLOY_USER }}
+      DEPLOY_SSH_KEY: ${{ secrets.DEPLOY_SSH_KEY }}
+      DEPLOY_KNOWN_HOSTS: ${{ secrets.DEPLOY_KNOWN_HOSTS }}
+      DEPLOY_SSH_PORT: ${{ secrets.DEPLOY_SSH_PORT }}
+    steps:
+      - name: 配置受信 SSH 主机与部署密钥
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -n "$DEPLOY_HOST" && test -n "$DEPLOY_USER" && test -n "$DEPLOY_SSH_KEY" && test -n "$DEPLOY_KNOWN_HOSTS"
+          install -d -m 700 ~/.ssh
+          printf '%s\n' "$DEPLOY_SSH_KEY" > ~/.ssh/yaoshitu_deploy
+          chmod 600 ~/.ssh/yaoshitu_deploy
+          printf '%s\n' "$DEPLOY_KNOWN_HOSTS" > ~/.ssh/known_hosts
+
+      - name: 在服务器发布精确 Tag
+        shell: bash
+        run: |
+          set -euo pipefail
+          port="${DEPLOY_SSH_PORT:-22}"
+          tag="${GITHUB_REF_NAME}"
+          ssh -i ~/.ssh/yaoshitu_deploy -p "$port" \
+            -o BatchMode=yes -o IdentitiesOnly=yes -o StrictHostKeyChecking=yes \
+            "$DEPLOY_USER@$DEPLOY_HOST" "bash -s -- '$tag'" <<'REMOTE'
+          set -euo pipefail
+          tag="$1"
+          case "$tag" in v[0-9]*) ;; *) echo "非法发布 Tag: $tag" >&2; exit 2;; esac
+
+          app_root=/opt/yaoshitu
+          releases=/opt/yaoshitu-releases
+          release="$releases/$tag"
+          test -d "$app_root/.git"
+          git -C "$app_root" fetch --force origin "refs/tags/$tag:refs/tags/$tag"
+          expected="$(git -C "$app_root" rev-parse "refs/tags/$tag^{commit}")"
+
+          if [ -d "$release" ]; then
+            test "$(git -C "$release" rev-parse HEAD)" = "$expected"
+          else
+            mkdir -p "$releases"
+            git -C "$app_root" worktree add --detach "$release" "refs/tags/$tag"
+          fi
+
+          exec bash "$release/server/deploy/release.sh" "$tag"
+          REMOTE
