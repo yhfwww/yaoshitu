@@ -12,8 +12,8 @@
 sudo useradd --create-home --shell /bin/bash yaoshitu-deploy
 sudo usermod -aG docker yaoshitu-deploy
 sudo install -d -o yaoshitu-deploy -g yaoshitu-deploy /opt/yaoshitu-releases /var/lib/yaoshitu-deploy
-sudo install -d -o yaoshitu-deploy -g yaoshitu-deploy /var/www/yaoshitu-releases
-sudo ln -sfn /var/www/yaoshitu-v0.2.0-dev /var/www/yaoshitu-current
+sudo install -d -o yaoshitu-deploy -g yaoshitu-deploy /var/www/yaoshitu-releases /var/www/yaoshitu
+sudo ln -sfn /var/www/yaoshitu-v0.2.0-dev /var/www/yaoshitu/current
 ```
 
 让部署用户可读取现有工作区和 Compose 所需 `.env`，但不要放宽给其他用户。Docker 组成员本身可取得主机高权限，因此这里不存在“给了 Docker 但仍低权限”的安全假设。
@@ -132,10 +132,10 @@ sudo cat /etc/ssh/ssh_host_ed25519_key.pub
 ssh-keygen -F 你的服务器IP -f "$env:USERPROFILE\.ssh\known_hosts" | Select-String -NotMatch '^#'
 ```
 
-将实际启用的 `yaoshitu.xyz` HTTPS Nginx server 块中的前端根目录改为以下稳定链接（只改这个 `root`，不要用仓库的 HTTP 模板覆盖 Certbot HTTPS 配置）：
+将实际启用的 `yaoshitu.xyz` HTTPS Nginx server 块中的前端根目录改为以下稳定链接（只改这个 `root`，不要用仓库的 HTTP 模板覆盖 Certbot HTTPS 配置）。链接放在 `yaoshitu-deploy` 可写的子目录中，发布脚本才能原子改名；**不要**让部署用户取得整个 `/var/www` 的写权限：
 
 ```nginx
-root /var/www/yaoshitu-current;
+root /var/www/yaoshitu/current;
 ```
 
 然后验证并重载：

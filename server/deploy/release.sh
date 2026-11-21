@@ -9,7 +9,8 @@ APP_ROOT="${YAOSHITU_APP_ROOT:-/opt/yaoshitu}"
 RELEASES_ROOT="${YAOSHITU_RELEASES_ROOT:-/opt/yaoshitu-releases}"
 RELEASE_DIR="$RELEASES_ROOT/$TAG"
 STATIC_ROOT="${YAOSHITU_STATIC_ROOT:-/var/www/yaoshitu-releases}"
-CURRENT_LINK="${YAOSHITU_CURRENT_LINK:-/var/www/yaoshitu-current}"
+# 链接所在目录由部署用户拥有；不要直接在 root 拥有的 /var/www 下改名。
+CURRENT_LINK="${YAOSHITU_CURRENT_LINK:-/var/www/yaoshitu/current}"
 STATE_DIR="${YAOSHITU_DEPLOY_STATE_DIR:-/var/lib/yaoshitu-deploy}"
 ENV_FILE="${YAOSHITU_ENV_FILE:-$APP_ROOT/server/.env}"
 
