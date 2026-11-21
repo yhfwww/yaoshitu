@@ -61,11 +61,29 @@ sudo chmod 600 /home/yaoshitu-deploy/.ssh/authorized_keys
 
 #### 3. 先验证密钥登录，再禁用该用户密码登录
 
-不要先修改 SSH 配置。另开一个 Windows PowerShell，用私钥测试；`id -un` 应输出 `yaoshitu-deploy`。如果失败，保留原 root SSH 窗口排查，不要关闭它。
+不要先修改 SSH 配置。另开一个 Windows PowerShell，用私钥测试；`id -un` 应输出 `yaoshitu-deploy`，且 `docker compose version` 必须显示 Compose 版本。如果失败，保留原 root SSH 窗口排查，不要关闭它。
 
 ```powershell
 ssh -i "$env:USERPROFILE\.ssh\yaoshitu-deploy" -o IdentitiesOnly=yes yaoshitu-deploy@你的服务器IP "id -un; docker compose version"
 ```
+
+若第一行已是 `yaoshitu-deploy`、第二行却显示 `docker: unknown command: docker compose`，说明密钥和 Docker 用户组都已生效，但 Compose 插件只安装在 root 的用户目录，对部署用户不可见。**先修复插件可见性，未通过前不要执行下一步的 SSH 密码禁用。**
+
+在服务器的 root SSH 窗口执行以下只读查找：
+
+```bash
+sudo find /root/.docker/cli-plugins /usr/local/lib/docker/cli-plugins /usr/local/libexec/docker/cli-plugins /usr/lib/docker/cli-plugins /usr/libexec/docker/cli-plugins \
+  -maxdepth 1 -type f -name docker-compose -perm /111 -print 2>/dev/null
+```
+
+若输出包含 `/root/.docker/cli-plugins/docker-compose`，把已由 root 正在使用的插件复制到 Docker 的系统级插件目录：
+
+```bash
+sudo install -D -m 0755 /root/.docker/cli-plugins/docker-compose /usr/local/lib/docker/cli-plugins/docker-compose
+sudo -u yaoshitu-deploy docker compose version
+```
+
+最后一条必须显示版本号。若查找命令没有输出，或复制后仍找不到 Compose，不要自行下载二进制；先安装发行版/官方 Docker 源提供的 `docker-compose-plugin`，再重复验证。
 
 确认成功后，仅针对部署用户禁用密码、交互式认证、端口转发和 TTY；不会影响 root 或你的日常 SSH 用户。服务器执行：
 
