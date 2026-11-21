@@ -24,7 +24,82 @@ sudo chmod 750 /opt/yaoshitu/server
 sudo chmod 640 /opt/yaoshitu/server/.env
 ```
 
-为 `yaoshitu-deploy` 创建一对专用 ED25519 SSH Key，将公钥放入 `/home/yaoshitu-deploy/.ssh/authorized_keys`；私钥只保存到 GitHub Secret，禁用该用户密码登录。服务器私钥、`.env`、PocketBase 密钥和 OAuth Secret 都不能上传 GitHub。
+### 配置 GitHub Actions 的专用 SSH Key
+
+这对密钥只供 GitHub Actions 登录 `yaoshitu-deploy` 使用，不能复用你自己的 SSH 私钥，也不要为它设置密码短语（当前工作流直接以私钥文件连接，无法交互输入密码短语）。**私钥绝不能粘贴到聊天、提交到仓库或上传到服务器。**
+
+#### 1. 在 Windows 本机生成密钥
+
+在 PowerShell 执行。首次输入密码短语时直接按两次 Enter，得到无密码短语的、仅用于自动部署的密钥：
+
+```powershell
+$key = "$env:USERPROFILE\.ssh\yaoshitu-deploy"
+ssh-keygen -t ed25519 -a 100 -f $key -C "github-actions-yaoshitu-deploy"
+```
+
+确认得到两个文件：
+
+- `$env:USERPROFILE\.ssh\yaoshitu-deploy`：**私钥**，只用于后续 GitHub Secret。
+- `$env:USERPROFILE\.ssh\yaoshitu-deploy.pub`：**公钥**，只安装到服务器。
+
+仅显示待复制的公钥；不要运行 `Get-Content` 查看私钥：
+
+```powershell
+Get-Content "$env:USERPROFILE\.ssh\yaoshitu-deploy.pub"
+```
+
+#### 2. 在 Ubuntu 安装公钥
+
+保持已有的 root SSH 窗口打开。在服务器执行下面命令，其中第二条会打开编辑器；把上一步显示的**整行公钥**粘贴为一行后保存退出。不要粘贴 `.pub` 文件名，也不要粘贴私钥的 `BEGIN OPENSSH PRIVATE KEY` 内容。
+
+```bash
+sudo install -d -m 700 -o yaoshitu-deploy -g yaoshitu-deploy /home/yaoshitu-deploy/.ssh
+sudoedit /home/yaoshitu-deploy/.ssh/authorized_keys
+sudo chown yaoshitu-deploy:yaoshitu-deploy /home/yaoshitu-deploy/.ssh/authorized_keys
+sudo chmod 600 /home/yaoshitu-deploy/.ssh/authorized_keys
+```
+
+#### 3. 先验证密钥登录，再禁用该用户密码登录
+
+不要先修改 SSH 配置。另开一个 Windows PowerShell，用私钥测试；`id -un` 应输出 `yaoshitu-deploy`。如果失败，保留原 root SSH 窗口排查，不要关闭它。
+
+```powershell
+ssh -i "$env:USERPROFILE\.ssh\yaoshitu-deploy" -o IdentitiesOnly=yes yaoshitu-deploy@你的服务器IP "id -un; docker compose version"
+```
+
+确认成功后，仅针对部署用户禁用密码、交互式认证、端口转发和 TTY；不会影响 root 或你的日常 SSH 用户。服务器执行：
+
+```bash
+sudo tee /etc/ssh/sshd_config.d/80-yaoshitu-deploy.conf >/dev/null <<'EOF'
+Match User yaoshitu-deploy
+    PasswordAuthentication no
+    KbdInteractiveAuthentication no
+    AuthenticationMethods publickey
+    AllowTcpForwarding no
+    X11Forwarding no
+    PermitTTY no
+EOF
+sudo sshd -t && sudo systemctl reload ssh
+```
+
+再重复上一条 Windows `ssh` 测试，确认密钥仍可登录。部署用户属于 Docker 组，而 Docker 组可获得主机高权限，因此这把私钥应视为生产管理员凭据：仅保存在 GitHub Secret 和你本机受保护的位置；完成 GitHub 配置与一次试发布后，可删除本机私钥副本。
+
+#### 4. 核验主机指纹并准备 Known Hosts
+
+不要把未经核验的 `ssh-keyscan` 结果直接信任。先在服务器控制台或已验证的 root SSH 会话执行，记下 ED25519 指纹：
+
+```bash
+sudo ssh-keygen -lf /etc/ssh/ssh_host_ed25519_key.pub
+```
+
+在 Windows 执行下面命令，输出的 ED25519 指纹必须一致；其中 `你的服务器IP` 换成即将填写的 `DEPLOY_HOST`：
+
+```powershell
+ssh-keyscan -H 你的服务器IP 2>$null | ssh-keygen -lf -
+ssh-keyscan -H 你的服务器IP 2>$null
+```
+
+第一条只用于比对指纹；第二条输出的一行或多行哈希主机记录，完整复制到 `DEPLOY_KNOWN_HOSTS` Secret。
 
 将实际启用的 `yaoshitu.xyz` HTTPS Nginx server 块中的前端根目录改为以下稳定链接（只改这个 `root`，不要用仓库的 HTTP 模板覆盖 Certbot HTTPS 配置）：
 
@@ -40,7 +115,7 @@ sudo nginx -t && sudo systemctl reload nginx
 
 ## GitHub 配置
 
-仓库 Settings → Secrets and variables → Actions 中添加以下 **Secrets**：
+仓库 Settings → Environments → `production` → Add environment secret 中添加以下 Secrets（也可放在 Settings → Secrets and variables → Actions 的 Repository secrets；生产专用的值更推荐放进 `production` 环境）：
 
 | 名称 | 内容 |
 | --- | --- |
@@ -50,7 +125,19 @@ sudo nginx -t && sudo systemctl reload nginx
 | `DEPLOY_SSH_KEY` | 专用部署私钥完整内容 |
 | `DEPLOY_KNOWN_HOSTS` | 经人工核验指纹后的 `ssh-keyscan -H <host>` 输出 |
 
-`DEPLOY_KNOWN_HOSTS` 不应在 CI 临时使用 `accept-new` 生成；先通过可信渠道核对服务器主机指纹，再保存结果。GitHub Environment `production` 不设置审批人即可全自动发布；若以后希望每次发布人工放行，可在该 Environment 添加 required reviewers。
+填写时：
+
+- `DEPLOY_HOST` 填服务器公网 IP 或稳定域名，不要带 `https://`、端口、空格或路径。
+- `DEPLOY_USER` 固定填 `yaoshitu-deploy`，`DEPLOY_SSH_PORT` 通常填 `22`。
+- 在 Windows 本机将私钥直接复制进剪贴板，再粘贴为 `DEPLOY_SSH_KEY` 的完整值；这条命令不在终端显示私钥：
+
+  ```powershell
+  Get-Content -Raw "$env:USERPROFILE\.ssh\yaoshitu-deploy" | Set-Clipboard
+  ```
+
+- 将已在上一节核验指纹的 `ssh-keyscan -H` 完整输出粘贴为 `DEPLOY_KNOWN_HOSTS`。不要使用 `StrictHostKeyChecking=no` 或在 CI 中临时 `accept-new`。
+
+保存 Secret 后，关闭包含私钥的剪贴板内容。GitHub Environment `production` 不设置审批人即可全自动发布；若以后希望每次发布人工放行，可在该 Environment 添加 required reviewers。
 
 ## 发布与回滚行为
 
