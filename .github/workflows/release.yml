@@ -65,26 +65,31 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          ssh_options=(
-            -i ~/.ssh/yaoshitu_deploy
-            -o BatchMode=yes
-            -o IdentitiesOnly=yes
-            -o StrictHostKeyChecking=yes
-          )
-          # 空端口使用 SSH 默认的 22；配置端口时必须是合法的十进制端口，
-          # 让错误直接指向 Secret，而不是让 ssh 只输出通用 usage。
-          if [ -n "${DEPLOY_SSH_PORT:-}" ]; then
-            case "$DEPLOY_SSH_PORT" in
-              *[!0-9]* | '') echo "DEPLOY_SSH_PORT 必须为 1 到 65535 的纯数字" >&2; exit 2;;
-            esac
-            if [ "$DEPLOY_SSH_PORT" -lt 1 ] || [ "$DEPLOY_SSH_PORT" -gt 65535 ]; then
-              echo "DEPLOY_SSH_PORT 必须为 1 到 65535 的纯数字" >&2
-              exit 2
-            fi
-            ssh_options+=(-p "$DEPLOY_SSH_PORT")
+          port="${DEPLOY_SSH_PORT:-22}"
+          case "$port" in
+            *[!0-9]* | '') echo "DEPLOY_SSH_PORT 必须为 1 到 65535 的纯数字" >&2; exit 2;;
+          esac
+          if [ "$port" -lt 1 ] || [ "$port" -gt 65535 ]; then
+            echo "DEPLOY_SSH_PORT 必须为 1 到 65535 的纯数字" >&2
+            exit 2
           fi
+          case "$DEPLOY_HOST" in *[[:space:]]* | '') echo "DEPLOY_HOST 不能含空白字符" >&2; exit 2;; esac
+          case "$DEPLOY_USER" in *[[:space:]]* | '') echo "DEPLOY_USER 不能含空白字符" >&2; exit 2;; esac
+          # 使用固定别名发起连接，不让 Secret 参与 ssh 命令行参数解析。
+          ssh_config="$RUNNER_TEMP/yaoshitu_ssh_config"
+          {
+            printf '%s\n' 'Host yaoshitu-production'
+            printf '  HostName %s\n' "$DEPLOY_HOST"
+            printf '  User %s\n' "$DEPLOY_USER"
+            printf '  Port %s\n' "$port"
+            printf '%s\n' '  IdentityFile ~/.ssh/yaoshitu_deploy'
+            printf '%s\n' '  IdentitiesOnly yes'
+            printf '%s\n' '  BatchMode yes'
+            printf '%s\n' '  StrictHostKeyChecking yes'
+          } > "$ssh_config"
+          chmod 600 "$ssh_config"
           tag="${GITHUB_REF_NAME}"
-          ssh "${ssh_options[@]}" "$DEPLOY_USER@$DEPLOY_HOST" "bash -s -- '$tag'" <<'REMOTE'
+          ssh -F "$ssh_config" yaoshitu-production "bash -s -- '$tag'" <<'REMOTE'
           set -euo pipefail
           tag="$1"
           case "$tag" in v[0-9]*) ;; *) echo "非法发布 Tag: $tag" >&2; exit 2;; esac
