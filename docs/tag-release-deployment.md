@@ -146,7 +146,7 @@ sudo nginx -t && sudo systemctl reload nginx
 
 ## GitHub 配置
 
-仓库 Settings → Environments → `production` → Add environment secret 中添加以下 Secrets（也可放在 Settings → Secrets and variables → Actions 的 Repository secrets；生产专用的值更推荐放进 `production` 环境）：
+仓库 Settings → Environments → `yaoshituLinux` → Add environment secret 中添加以下 Secrets（也可放在 Settings → Secrets and variables → Actions 的 Repository secrets；生产专用的值更推荐放进 `yaoshituLinux` 环境）。环境名必须与 `.github/workflows/release.yml` 的 `environment` 完全一致；不要误填到另一个同名/空白环境。
 
 | 名称 | 内容 |
 | --- | --- |
@@ -168,7 +168,7 @@ sudo nginx -t && sudo systemctl reload nginx
 
 - 将已在上一节核验指纹的 `ssh-keyscan -H` 完整输出粘贴为 `DEPLOY_KNOWN_HOSTS`。不要使用 `StrictHostKeyChecking=no` 或在 CI 中临时 `accept-new`。
 
-保存 Secret 后，关闭包含私钥的剪贴板内容。GitHub Environment `production` 不设置审批人即可全自动发布；若以后希望每次发布人工放行，可在该 Environment 添加 required reviewers。
+保存 Secret 后，关闭包含私钥的剪贴板内容。GitHub Environment `yaoshituLinux` 不设置审批人即可全自动发布；若以后希望每次发布人工放行，可在该 Environment 添加 required reviewers。
 
 ## 发布与回滚行为
 
