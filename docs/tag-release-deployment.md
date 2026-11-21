@@ -119,6 +119,19 @@ ssh-keyscan -H 你的服务器IP 2>$null
 
 第一条只用于比对指纹；第二条输出的一行或多行哈希主机记录，完整复制到 `DEPLOY_KNOWN_HOSTS` Secret。
 
+若 `ssh-keyscan` 没有任何输出，管道后的 `ssh-keygen` 会提示“不是公钥文件”；这代表没有获取到主机公钥，**不能把空结果保存为 Secret**。此时可在已验证的服务器 root SSH 会话直接生成一条可用于 Known Hosts 的公开记录（主机公钥不是私钥）：
+
+```bash
+printf '你的服务器IP '
+sudo cat /etc/ssh/ssh_host_ed25519_key.pub
+```
+
+把上面两行合并后的完整单行复制为 `DEPLOY_KNOWN_HOSTS`。例如格式为 `203.0.113.10 ssh-ed25519 AAAA...`；IP 必须与 `DEPLOY_HOST` 完全一致。也可以从 Windows 已信任记录中读取：
+
+```powershell
+ssh-keygen -F 你的服务器IP -f "$env:USERPROFILE\.ssh\known_hosts" | Select-String -NotMatch '^#'
+```
+
 将实际启用的 `yaoshitu.xyz` HTTPS Nginx server 块中的前端根目录改为以下稳定链接（只改这个 `root`，不要用仓库的 HTTP 模板覆盖 Certbot HTTPS 配置）：
 
 ```nginx
