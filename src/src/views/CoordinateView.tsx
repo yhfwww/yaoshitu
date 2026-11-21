@@ -295,15 +295,12 @@ export function CoordinateView() {
                     }
                     strokeWidth={isSel || isHov ? 2 : 1.4}
                     style={{ cursor: "grab" }}
+                    aria-label={`任务：${tasks.find((t) => t.id === p.id)?.title ?? "未命名任务"}`}
                     onPointerDown={(e) => onPointDown(e, p.id)}
                     onPointerEnter={(e) => setHover({ id: p.id, cx: e.clientX, cy: e.clientY })}
                     onPointerMove={(e) => setHover({ id: p.id, cx: e.clientX, cy: e.clientY })}
                     onPointerLeave={() => setHover((h) => (h?.id === p.id ? null : h))}
-                  >
-                    <title>
-                      {tasks.find((t) => t.id === p.id)?.title ?? ""}
-                    </title>
-                  </circle>
+                  />
                   {/* 重叠点用编号提示 */}
                 </g>
               );
