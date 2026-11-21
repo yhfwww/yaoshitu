@@ -57,7 +57,7 @@ export function SyncSettings() {
     {sync.account && <details style={{ marginTop: 12 }}>
       <summary>删除账号</summary>
       <p style={{ fontSize: 12 }}>永久删除云端账号、云端任务和笔记，以及此浏览器的账号空间。请先导出备份。游客数据会保留；服务器历史备份按保留周期过期。</p>
-      <label style={{ fontSize: 12 }}>输入“删除账号”确认<input className="input" value={deleteText} onChange={(e) => setDeleteText(e.target.value)} /></label>
+      <label htmlFor="delete-account-confirmation" style={{ fontSize: 12 }}>输入“删除账号”确认<input id="delete-account-confirmation" name="deleteAccountConfirmation" className="input" value={deleteText} onChange={(e) => setDeleteText(e.target.value)} /></label>
       <button className="btn" disabled={disabled || deleteText !== "删除账号"} onClick={() => act(deleteAccount, "账号已删除")}>永久删除账号及数据</button>
     </details>}
   </section>;
