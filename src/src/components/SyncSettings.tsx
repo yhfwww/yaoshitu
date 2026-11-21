@@ -44,7 +44,7 @@ export function SyncSettings() {
     </div>}
     <p role="status" aria-live="polite" style={{ fontSize: 12 }}>{message || sync.error}</p>
     {sync.conflicts.length > 0 && <details>
-      <summary>可恢复的冲突旧值（最近记录）</summary>
+      <summary>同步冲突：可恢复的旧值（最近记录）</summary>
       <p style={{ fontSize: 12 }}>同一字段由最后被服务器接受的修改生效。可将旧值重新设为当前值。</p>
       {sync.conflicts.map((doc) => <div key={doc.key}>
         <strong style={{ fontSize: 12 }}>{String(doc.values.title ?? "偏好设置")}</strong>
