@@ -55,7 +55,10 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          test -n "$DEPLOY_HOST" && test -n "$DEPLOY_USER" && test -n "$DEPLOY_SSH_KEY" && test -n "$DEPLOY_KNOWN_HOSTS"
+          : "${DEPLOY_HOST:?production 环境缺少 DEPLOY_HOST Secret}"
+          : "${DEPLOY_USER:?production 环境缺少 DEPLOY_USER Secret}"
+          : "${DEPLOY_SSH_KEY:?production 环境缺少 DEPLOY_SSH_KEY Secret}"
+          : "${DEPLOY_KNOWN_HOSTS:?production 环境缺少 DEPLOY_KNOWN_HOSTS Secret}"
           install -d -m 700 ~/.ssh
           printf '%s\n' "$DEPLOY_SSH_KEY" > ~/.ssh/yaoshitu_deploy
           chmod 600 ~/.ssh/yaoshitu_deploy
